@@ -1,0 +1,7 @@
+= GraphQL Feder(ation) Server
+
+A lightweight GraphQL federation server.
+
+== Build
+
+This project is a Quarkus/JakartaEE hybrid, i.e. the `pom.xml` builds a https://quarkus.io[Quarkus] application, while the `war-pom.xml` build a `war` that can be deployed to any https://jakarta.ee[JakartaEE] or https://microprofile.io[Microprofile] runtime.
