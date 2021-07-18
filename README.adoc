@@ -1,5 +1,7 @@
 = GraphQL Feder(ation) Server
 
+image::doc/feder.png[]
+
 A lightweight GraphQL federation server.
 
 == Build
