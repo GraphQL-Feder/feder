@@ -1,4 +1,4 @@
-= GraphQL Feder(ation) Server
+= GraphQL Feder(ation) Server image:https://github.com/graphql-feder/feder/actions/workflows/maven.yml/badge.svg[link=https://github.com/graphql-feder/feder/actions/workflows/maven.yml]
 
 image::doc/feder.png[]
 
