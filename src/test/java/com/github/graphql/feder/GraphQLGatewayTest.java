@@ -1,14 +1,16 @@
 package com.github.graphql.feder;
 
+import com.github.graphql.feder.GraphQLGateway.GenericGraphQLAPI;
 import com.github.graphql.feder.GraphQLGateway.GraphQLRequest;
+import com.github.graphql.feder.GraphQLGateway.GraphQLResponse;
 import com.github.t1.wunderbar.junit.consumer.Service;
-import com.github.t1.wunderbar.junit.consumer.SystemUnderTest;
 import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
-import io.smallrye.graphql.client.typesafe.api.GraphQLClientApi;
-import org.eclipse.microprofile.graphql.Query;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.json.bind.JsonbBuilder;
+import javax.json.Json;
+import javax.json.JsonObject;
+import java.io.StringReader;
 import java.util.List;
 
 import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
@@ -18,27 +20,42 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
 class GraphQLGatewayTest {
-    private static final Product PRODUCT = Product.builder().id("1").name("Table").description("Elegant designer table with four legs").build();
+    private static final Product PRODUCT = Product.builder().id("1").name("Table")
+        .description("Elegant designer table with four legs").build();
 
-    @Service Products service;
-    @SystemUnderTest GraphQLGateway gateway;
+    @Service GenericGraphQLAPI service;
+    GraphQLGateway gateway = new GraphQLGateway();
 
-    @GraphQLClientApi
-    public interface Products {
-        @Query Product product(String id);
+    @BeforeEach
+    void setup() {
+        gateway.services = List.of(service);
+
+        given(service.request(GraphQLRequest.builder()
+            .query("{product(id:\"1\"){id name description}}")
+            .build())
+        ).willReturn(GraphQLResponse.builder().data(parse(
+            "{\n" +
+            "    \"data\": {\n" +
+            "        \"product\": {\n" +
+            "            \"description\": \"Elegant designer table with four legs\",\n" +
+            "            \"id\": \"1\",\n" +
+            "            \"name\": \"Table\"\n" +
+            "        }\n" +
+            "    }\n" +
+            "}"
+        )).build());
+    }
+
+    private static JsonObject parse(String json) {
+        return Json.createReader(new StringReader(json)).readObject();
     }
 
     @Test
     void shouldProxyResponse() {
-        given(service.product("1"))
-            .whileSettingBaseUri(uri -> gateway.serviceUris = List.of(uri))
-            .willReturn(PRODUCT);
-
         var response = gateway.graphql(GraphQLRequest.builder()
             .query("{product(id:\"1\"){id name description}}")
             .build());
 
-        var product = JsonbBuilder.create().fromJson(response.data.get("product").toString(), Product.class);
-        then(product).isEqualTo(PRODUCT);
+        then(response.getData("product", Product.class)).isEqualTo(PRODUCT);
     }
 }
