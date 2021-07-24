@@ -52,9 +52,7 @@ class GraphQLGatewayTest {
 
     @Test
     void shouldProxyResponse() {
-        var response = gateway.graphql(GraphQLRequest.builder()
-            .query("{product(id:\"1\"){id name description}}")
-            .build());
+        var response = gateway.graphql("{product(id:\"1\"){id name description}}", null);
 
         then(response.getData("product", Product.class)).isEqualTo(PRODUCT);
     }
