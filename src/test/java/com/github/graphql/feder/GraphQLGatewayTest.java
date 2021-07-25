@@ -29,8 +29,7 @@ class GraphQLGatewayTest {
         gateway.services = List.of(new FederatedGraphQLService(service));
 
         givenSchema("\"Something you can buy\"\n" +
-                    // "type Product @key(fields: \"id\") {\n" +
-                    "type Product {\n" +
+                    "type Product @key(fields: \"id\") {\n" +
                     "  description: String\n" +
                     "  id: String\n" +
                     "  name: String\n" +

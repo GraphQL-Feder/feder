@@ -13,7 +13,9 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Path("/graphql")
 public class GraphQLGateway {
@@ -59,6 +61,13 @@ public class GraphQLGateway {
     @Data @SuperBuilder @NoArgsConstructor
     public static class GraphQLError {
         String message;
+        Map<String, Object> extensions;
+
+        public GraphQLError withExtension(String key, Object value) {
+            if (extensions == null) extensions = new LinkedHashMap<>();
+            extensions.put(key, value);
+            return this;
+        }
     }
 
     static final Jsonb JSONB = JsonbBuilder.create();
