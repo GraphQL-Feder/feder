@@ -1,8 +1,6 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GraphQLGateway.GenericGraphQLAPI;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -19,9 +17,7 @@ public class ServiceProducer {
     List<URI> serviceUris;
 
     @Produces
-    public List<GenericGraphQLAPI> services() {
-        return serviceUris.stream().map(ServiceProducer::buildService).collect(toList());
+    public List<FederatedGraphQLService> services() {
+        return serviceUris.stream().map(FederatedGraphQLService::new).collect(toList());
     }
-
-    private static GenericGraphQLAPI buildService(URI uri) {return RestClientBuilder.newBuilder().baseUri(uri).build(GenericGraphQLAPI.class);}
 }

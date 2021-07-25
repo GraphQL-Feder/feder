@@ -18,7 +18,7 @@
 
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
 
-        <quarkus.version>2.0.1.Final</quarkus.version>
+        <quarkus.version>2.0.3.Final</quarkus.version>
     </properties>
 
     <dependencyManagement>
@@ -52,6 +52,11 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-client-jsonb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.graphql-java</groupId>
+            <artifactId>graphql-java</artifactId>
+            <version>16.2</version>
         </dependency>
 
         <dependency>

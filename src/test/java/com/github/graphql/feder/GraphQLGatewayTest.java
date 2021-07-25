@@ -20,30 +20,66 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
 class GraphQLGatewayTest {
-    private static final Product PRODUCT = Product.builder().id("1").name("Table")
-        .description("Elegant designer table with four legs").build();
 
     @Service GenericGraphQLAPI service;
     GraphQLGateway gateway = new GraphQLGateway();
 
     @BeforeEach
     void setup() {
-        gateway.services = List.of(service);
+        gateway.services = List.of(new FederatedGraphQLService(service));
 
+        givenSchema("\"Something you can buy\"\n" +
+                    // "type Product @key(fields: \"id\") {\n" +
+                    "type Product {\n" +
+                    "  description: String\n" +
+                    "  id: String\n" +
+                    "  name: String\n" +
+                    "}\n" +
+                    "\n" +
+                    "\"Query root\"\n" +
+                    "type Query {\n" +
+                    "  product(id: String): Product\n" +
+                    "}\n");
+        givenRepresentation("Product{__typename name id}");
+    }
+
+    private void givenRepresentation(String fragment) {
         given(service.request(GraphQLRequest.builder()
-            .query("{product(id:\"1\"){id name description}}")
+            .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
+            .variables(Json.createObjectBuilder()
+                .add("representations", Json.createObjectBuilder()
+                    .add("__typename", "Product")
+                    .add("id", "1")
+                    .build())
+                .build())
             .build())
         ).willReturn(GraphQLResponse.builder().data(parse(
             "{\n" +
-            "    \"data\": {\n" +
-            "        \"product\": {\n" +
-            "            \"description\": \"Elegant designer table with four legs\",\n" +
+            "    \"_entities\": [\n" +
+            "        {\n" +
+            "            \"__typename\": \"Product\",\n" +
             "            \"id\": \"1\",\n" +
             "            \"name\": \"Table\"\n" +
             "        }\n" +
-            "    }\n" +
+            "    ]\n" +
             "}"
         )).build());
+    }
+
+    private void givenSchema(String schema) {
+        given(service.request(GraphQLRequest.builder()
+            .query("{_service{sdl}}")
+            .build())
+        ).willReturn(GraphQLResponse.builder().data(parse(
+            "{\n" +
+            "    \"_service\": {\n" +
+            "        \"sdl\": \"" +
+            schema
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n") +
+            "\"\n" +
+            "    }\n" +
+            "}")).build());
     }
 
     private static JsonObject parse(String json) {
@@ -52,8 +88,8 @@ class GraphQLGatewayTest {
 
     @Test
     void shouldProxyResponse() {
-        var response = gateway.graphql("{product(id:\"1\"){id name description}}", null);
+        var response = gateway.graphql("{product(id:\"1\"){id name}}", null);
 
-        then(response.getData("product", Product.class)).isEqualTo(PRODUCT);
+        then(response.getData("product", Product.class)).isEqualTo(Product.builder().id("1").name("Table").build());
     }
 }

@@ -20,7 +20,7 @@ public class GraphQLGateway {
 
     @Inject
     @SuppressWarnings("CdiInjectionPointsInspection")
-    List<GenericGraphQLAPI> services;
+    List<FederatedGraphQLService> services;
 
     @GET
     @Produces("application/graphql+json")
@@ -39,8 +39,7 @@ public class GraphQLGateway {
 
     @Path("/graphql")
     public interface GenericGraphQLAPI {
-        @POST
-        GraphQLResponse request(GraphQLRequest request);
+        @POST GraphQLResponse request(GraphQLRequest request);
     }
 
     @Data @SuperBuilder @NoArgsConstructor
@@ -54,13 +53,12 @@ public class GraphQLGateway {
         JsonObject data;
         List<GraphQLError> errors;
 
-        public <T> T getData(String name, java.lang.Class<T> type) {
-            return JSONB.fromJson(data.getJsonObject("data").get(name).toString(), type);
-        }
+        public <T> T getData(String name, java.lang.Class<T> type) { return JSONB.fromJson(data.get(name).toString(), type); }
     }
 
+    @Data @SuperBuilder @NoArgsConstructor
     public static class GraphQLError {
-        // String message;
+        String message;
     }
 
     static final Jsonb JSONB = JsonbBuilder.create();
