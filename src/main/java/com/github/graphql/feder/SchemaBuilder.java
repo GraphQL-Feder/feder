@@ -2,54 +2,52 @@ package com.github.graphql.feder;
 
 import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
 import graphql.language.FieldDefinition;
+import graphql.language.NamedNode;
 import graphql.language.Node;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
 import graphql.scalar.GraphqlStringCoercing;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLObjectType;
+import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
-import graphql.schema.SelectedField;
 import graphql.schema.idl.RuntimeWiring.Builder;
 import graphql.schema.idl.SchemaDirectiveWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeRuntimeWiring;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
-import javax.json.Json;
 import java.net.URI;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 import static java.util.stream.Collectors.toSet;
 
 @Slf4j
-@RequiredArgsConstructor
 class SchemaBuilder {
-    private final GenericGraphQLAPI api;
-    private final URI uri;
+    final URI uri;
+    final GenericGraphQLAPI api;
 
     SchemaBuilder(URI uri) {
-        this.uri = uri;
-        this.api = RestClientBuilder.newBuilder().baseUri(uri).build(GenericGraphQLAPI.class);
+        this(uri, RestClientBuilder.newBuilder().baseUri(uri).build(GenericGraphQLAPI.class));
     }
 
-    GraphQLSchema build() {
+    public SchemaBuilder(URI uri, GenericGraphQLAPI api) {
+        this.uri = uri;
+        this.api = api;
+    }
+
+    GraphQLSchema build(DataFetcher<?> representationFetcher) {
         TypeDefinitionRegistry typeDefinitionRegistry = buildSchema();
 
         var runtimeWiring = newRuntimeWiring();
         @SuppressWarnings("unchecked")
         var queries = (List<FieldDefinition>) typeDefinitionRegistry.getType("Query").orElseThrow().getChildren();
         queries.forEach(query ->
-            runtimeWiring.type("Query", wire -> wire.dataFetcher(query.getName(), this::fetch))
+            runtimeWiring.type("Query", wire -> wire.dataFetcher(query.getName(), representationFetcher))
         );
         wireFederationDeclaration(runtimeWiring);
 
@@ -58,9 +56,9 @@ class SchemaBuilder {
 
     private TypeDefinitionRegistry buildSchema() {
         TypeDefinitionRegistry typeDefinitionRegistry = new SchemaParser().parse(FEDERATION_SCHEMA + fetchSchema());
-        var entities = typeDefinitionRegistry.types().entrySet().stream()
-            .filter(entry -> isEntity(entry.getValue()))
-            .map(Entry::getKey)
+        var entities = typeDefinitionRegistry.types().values().stream()
+            .filter(this::isEntity)
+            .map(NamedNode::getName)
             .collect(toSet());
         TypeDefinitionRegistry additions = new SchemaParser().parse(
             "\"This is a union of all types that use the @key directive, including both types native to the schema and extended types.\"\n" +
@@ -81,32 +79,6 @@ class SchemaBuilder {
         } catch (RuntimeException e) {
             throw new RuntimeException("can't fetch GraphQL schema from " + uri, e);
         }
-    }
-
-    private Object fetch(DataFetchingEnvironment env) {
-        var typename = ((GraphQLObjectType) env.getFieldType()).getName();
-        var selectedFields = env.getSelectionSet().getFields().stream().map(SelectedField::getName).collect(toSet());
-        var fragment = typename + "{" + (selectedFields.contains("__typename") ? "" : "__typename ") + String.join(" ", selectedFields) + "}";
-        GraphQLRequest representationsRequest = GraphQLRequest.builder()
-            .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
-            .variables(Json.createObjectBuilder()
-                .add("representations", Json.createObjectBuilder()
-                    .add("__typename", typename)
-                    .add("id", env.getArgument("id").toString()) // TODO derive from @key
-                    .build())
-                .build())
-            .build();
-
-        var response = api.request(representationsRequest);
-        var entity = response.getData().getJsonArray("_entities").get(0).asJsonObject();
-
-        // GraphQL-Java doesn't like JsonObjects: it wraps strings in quotes
-        // var out = Json.createObjectBuilder(entity);
-        // if (!selectedFields.contains("__typename")) out.remove("__typename");
-        // return out.build();
-        var out = new LinkedHashMap<>();
-        selectedFields.forEach(fieldName -> out.put(fieldName, entity.getString(fieldName))); // TODO other types
-        return out;
     }
 
     private boolean isEntity(TypeDefinition<?> type) {

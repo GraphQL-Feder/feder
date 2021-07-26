@@ -49,8 +49,8 @@ class GraphQLGatewayTest {
         givenSchema("\"Something you can buy\"\n" +
                     "type Product " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
                     "  id: ID\n" +
-                    "  description: String\n" +
                     "  name: String\n" +
+                    "  description: String\n" +
                     "}\n" +
                     "\n" +
                     "\"Query root\"\n" +
@@ -59,7 +59,7 @@ class GraphQLGatewayTest {
                     "}\n");
         givenRepresentation("Product{__typename name id}");
 
-        gateway.services = List.of(new FederatedGraphQLService(new SchemaBuilder(service, URI.create("urn:mock")).build()));
+        gateway.services = List.of(new FederatedGraphQLService(new SchemaBuilder(URI.create("urn:mock"), service)));
     }
 
     private void givenSchema(String schema) {

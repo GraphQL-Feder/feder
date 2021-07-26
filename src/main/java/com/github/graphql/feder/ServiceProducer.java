@@ -19,7 +19,8 @@ public class ServiceProducer {
     @Produces
     public List<FederatedGraphQLService> services() {
         return serviceUris.stream()
-            .map(uri -> new SchemaBuilder(uri).build())
-            .map(FederatedGraphQLService::new).collect(toList());
+            .map(SchemaBuilder::new)
+            .map(FederatedGraphQLService::new)
+            .collect(toList());
     }
 }
