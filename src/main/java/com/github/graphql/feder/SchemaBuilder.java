@@ -2,7 +2,9 @@ package com.github.graphql.feder;
 
 import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
 import graphql.language.FieldDefinition;
+import graphql.language.Node;
 import graphql.language.TypeDefinition;
+import graphql.language.TypeName;
 import graphql.scalar.GraphqlStringCoercing;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLObjectType;
@@ -24,6 +26,7 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 import static java.util.stream.Collectors.toSet;
@@ -55,7 +58,10 @@ class SchemaBuilder {
 
     private TypeDefinitionRegistry buildSchema() {
         TypeDefinitionRegistry typeDefinitionRegistry = new SchemaParser().parse(FEDERATION_SCHEMA + fetchSchema());
-        var entities = typeDefinitionRegistry.types().entrySet().stream().filter(this::isEntity).map(Entry::getKey).collect(toSet());
+        var entities = typeDefinitionRegistry.types().entrySet().stream()
+            .filter(entry -> isEntity(entry.getValue()))
+            .map(Entry::getKey)
+            .collect(toSet());
         TypeDefinitionRegistry additions = new SchemaParser().parse(
             "\"This is a union of all types that use the @key directive, including both types native to the schema and extended types.\"\n" +
             "union _Entity = " + String.join(" ", entities));
@@ -103,8 +109,22 @@ class SchemaBuilder {
         return out;
     }
 
-    private boolean isEntity(@SuppressWarnings("rawtypes") Entry<String, TypeDefinition> type) {
-        return type.getValue().hasDirective("key");
+    private boolean isEntity(TypeDefinition<?> type) {
+        return type.hasDirective("key") || (!STANDARD_TYPES.contains(type.getName()) && hasIdField(type));
+    }
+
+    private boolean hasIdField(TypeDefinition<?> typeDefinition) {
+        return typeDefinition.getChildren().stream()
+            .flatMap(this::typeNameFields)
+            .anyMatch(type -> type.getName().equals("ID"));
+    }
+
+    private Stream<TypeName> typeNameFields(Node<?> typeNode) {
+        return Stream.of(typeNode)
+            .filter(node -> node instanceof FieldDefinition)
+            .map(node -> ((FieldDefinition) node).getType())
+            .filter(type -> type instanceof TypeName)
+            .map(type -> (TypeName) type);
     }
 
     private static void wireFederationDeclaration(Builder runtimeWiring) {
@@ -113,6 +133,8 @@ class SchemaBuilder {
         runtimeWiring.directive("key", new SchemaDirectiveWiring() {});
         runtimeWiring.type(TypeRuntimeWiring.newTypeWiring("_Entity").typeResolver(env -> null));
     }
+
+    private static final List<String> STANDARD_TYPES = List.of("Query", "Mutation", "Subscription");
 
     /** The static part of the federation declarations, i.e. without the <code>_Entity</code> union. */
     private static final String FEDERATION_SCHEMA =

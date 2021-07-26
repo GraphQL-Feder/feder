@@ -4,8 +4,8 @@ import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
 import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
 import com.github.t1.wunderbar.junit.consumer.Service;
 import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import javax.json.Json;
 import javax.json.JsonObject;
@@ -24,12 +24,32 @@ class GraphQLGatewayTest {
     @Service GenericGraphQLAPI service;
     GraphQLGateway gateway = new GraphQLGateway();
 
-    @BeforeEach
-    void setup() {
+    enum RunMode {
+        WITH_DIRECTIVES {
+            @Override public String directive(String directive) { return directive; }
+        },
+        WITHOUT_DIRECTIVES {
+            @Override public String directive(String directive) { return ""; }
+        };
+
+        public abstract String directive(String directive);
+    }
+
+    @ParameterizedTest
+    @EnumSource
+    void shouldProxyResponse(RunMode runMode) {
+        setup(runMode);
+
+        var response = gateway.graphql("{product(id:\"1\"){id name}}", null);
+
+        then(response.getData("product", Product.class)).isEqualTo(Product.builder().id("1").name("Table").build());
+    }
+
+    void setup(RunMode runMode) {
         givenSchema("\"Something you can buy\"\n" +
-                    "type Product @key(fields: \"id\") {\n" +
+                    "type Product " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
+                    "  id: ID\n" +
                     "  description: String\n" +
-                    "  id: String\n" +
                     "  name: String\n" +
                     "}\n" +
                     "\n" +
@@ -40,6 +60,22 @@ class GraphQLGatewayTest {
         givenRepresentation("Product{__typename name id}");
 
         gateway.services = List.of(new FederatedGraphQLService(new SchemaBuilder(service, URI.create("urn:mock")).build()));
+    }
+
+    private void givenSchema(String schema) {
+        given(service.request(GraphQLRequest.builder()
+            .query("{_service{sdl}}")
+            .build())
+        ).willReturn(GraphQLResponse.builder().data(parse(
+            "{\n" +
+            "    \"_service\": {\n" +
+            "        \"sdl\": \"" +
+            schema
+                .replaceAll("\"", "\\\\\"")
+                .replaceAll("\n", "\\\\n") +
+            "\"\n" +
+            "    }\n" +
+            "}")).build());
     }
 
     private void givenRepresentation(String fragment) {
@@ -65,30 +101,7 @@ class GraphQLGatewayTest {
         )).build());
     }
 
-    private void givenSchema(String schema) {
-        given(service.request(GraphQLRequest.builder()
-            .query("{_service{sdl}}")
-            .build())
-        ).willReturn(GraphQLResponse.builder().data(parse(
-            "{\n" +
-            "    \"_service\": {\n" +
-            "        \"sdl\": \"" +
-            schema
-                .replaceAll("\"", "\\\\\"")
-                .replaceAll("\n", "\\\\n") +
-            "\"\n" +
-            "    }\n" +
-            "}")).build());
-    }
-
     private static JsonObject parse(String json) {
         return Json.createReader(new StringReader(json)).readObject();
-    }
-
-    @Test
-    void shouldProxyResponse() {
-        var response = gateway.graphql("{product(id:\"1\"){id name}}", null);
-
-        then(response.getData("product", Product.class)).isEqualTo(Product.builder().id("1").name("Table").build());
     }
 }

@@ -5,8 +5,6 @@ import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
 
 import javax.inject.Inject;
 import javax.json.JsonObject;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -42,6 +40,4 @@ public class GraphQLGateway {
     public GraphQLResponse graphql(GraphQLRequest request) {
         return services.get(0).request(request);
     }
-
-    static final Jsonb JSONB = JsonbBuilder.create();
 }

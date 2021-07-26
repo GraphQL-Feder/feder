@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import javax.json.JsonObject;
+import javax.json.bind.Jsonb;
+import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.util.LinkedHashMap;
@@ -13,6 +15,8 @@ import java.util.Map;
 
 @Path("/graphql")
 public interface GenericGraphQLAPI {
+    Jsonb JSONB = JsonbBuilder.create();
+
     @POST GraphQLResponse request(GraphQLRequest request);
 
     @Data @SuperBuilder @NoArgsConstructor
@@ -26,7 +30,7 @@ public interface GenericGraphQLAPI {
         JsonObject data;
         List<GraphQLError> errors;
 
-        public <T> T getData(String name, Class<T> type) { return GraphQLGateway.JSONB.fromJson(data.get(name).toString(), type); }
+        public <T> T getData(String name, Class<T> type) { return JSONB.fromJson(data.get(name).toString(), type); }
     }
 
     @Data @SuperBuilder @NoArgsConstructor
