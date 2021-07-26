@@ -1,7 +1,7 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GraphQLGateway.GraphQLError;
-import com.github.graphql.feder.GraphQLGateway.GraphQLResponse;
+import com.github.graphql.feder.GenericGraphQLAPI.GraphQLError;
+import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.ws.rs.core.Response;

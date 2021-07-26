@@ -1,8 +1,7 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GraphQLGateway.GenericGraphQLAPI;
-import com.github.graphql.feder.GraphQLGateway.GraphQLRequest;
-import com.github.graphql.feder.GraphQLGateway.GraphQLResponse;
+import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
+import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
 import com.github.t1.wunderbar.junit.consumer.Service;
 import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import javax.json.Json;
 import javax.json.JsonObject;
 import java.io.StringReader;
+import java.net.URI;
 import java.util.List;
 
 import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
@@ -26,8 +26,6 @@ class GraphQLGatewayTest {
 
     @BeforeEach
     void setup() {
-        gateway.services = List.of(new FederatedGraphQLService(service));
-
         givenSchema("\"Something you can buy\"\n" +
                     "type Product @key(fields: \"id\") {\n" +
                     "  description: String\n" +
@@ -40,6 +38,8 @@ class GraphQLGatewayTest {
                     "  product(id: String): Product\n" +
                     "}\n");
         givenRepresentation("Product{__typename name id}");
+
+        gateway.services = List.of(new FederatedGraphQLService(new SchemaBuilder(service, URI.create("urn:mock")).build()));
     }
 
     private void givenRepresentation(String fragment) {
