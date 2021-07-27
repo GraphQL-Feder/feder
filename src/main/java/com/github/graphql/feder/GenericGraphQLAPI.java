@@ -30,7 +30,13 @@ public interface GenericGraphQLAPI {
         JsonObject data;
         List<GraphQLError> errors;
 
-        public <T> T getData(String name, Class<T> type) { return JSONB.fromJson(data.get(name).toString(), type); }
+        public <T> T getData(String name, Class<T> type) {
+            if (data == null) return null;
+            var jsonValue = data.get(name);
+            return (jsonValue == null) ? null : JSONB.fromJson(jsonValue.toString(), type);
+        }
+
+        public boolean hasErrors() { return errors != null && !errors.isEmpty(); }
     }
 
     @Data @SuperBuilder @NoArgsConstructor

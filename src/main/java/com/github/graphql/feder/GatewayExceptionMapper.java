@@ -31,7 +31,7 @@ public class GatewayExceptionMapper implements ExceptionMapper<RuntimeException>
         return Response.ok().entity(GraphQLResponse.builder().errors(List.of(error)).build()).build();
     }
 
-    private GraphQLError map(RuntimeException exception) {
+    private static GraphQLError map(RuntimeException exception) {
         return GraphQLError.builder()
             .message(exception.getMessage())
             // TODO map more fields

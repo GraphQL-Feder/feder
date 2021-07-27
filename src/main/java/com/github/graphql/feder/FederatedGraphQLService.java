@@ -12,7 +12,10 @@ import graphql.schema.idl.SchemaPrinter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.json.Json;
+import javax.json.JsonNumber;
 import javax.json.JsonObject;
+import javax.json.JsonString;
+import javax.json.JsonValue;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -53,8 +56,29 @@ class FederatedGraphQLService {
         // if (!selectedFields.contains("__typename")) out.remove("__typename");
         // return out.build();
         var out = new LinkedHashMap<>();
-        selectedFields.forEach(fieldName -> out.put(fieldName, entity.getString(fieldName))); // TODO other types
+        selectedFields.forEach(fieldName -> out.put(fieldName, mapField(entity.getValue("/" + fieldName))));
         return out;
+    }
+
+    private Object mapField(JsonValue value) {
+        switch (value.getValueType()) {
+            case ARRAY:
+                // return map(value.asJsonArray());
+            case OBJECT:
+                // return map(value.asJsonObject());
+                break;
+            case STRING:
+                return ((JsonString) value).getString();
+            case NUMBER:
+                return ((JsonNumber) value).numberValue();
+            case TRUE:
+                return true;
+            case FALSE:
+                return false;
+            case NULL:
+                return null;
+        }
+        throw new IllegalStateException("unexpected json value type " + value.getValueType());
     }
 
     GraphQLResponse request(GraphQLRequest request) {
@@ -66,7 +90,9 @@ class FederatedGraphQLService {
             .build();
     }
 
-    private static JsonObject json(Map<String, Object> data) { return Json.createObjectBuilder(data).build(); }
+    private static JsonObject json(Map<String, Object> data) {
+        return (data == null) ? null : Json.createObjectBuilder(data).build();
+    }
 
     public String getSchema() { return new SchemaPrinter().print(schema); }
 }

@@ -73,6 +73,10 @@ class SchemaBuilder {
             var t0 = System.currentTimeMillis();
             var response = api.request(request);
             var t1 = System.currentTimeMillis();
+            if (response == null) throw new RuntimeException("no response while fetching sdl from " + uri + ". probably a mocking problem.");
+            if (response.hasErrors()) throw new RuntimeException("errors while fetching sdl from " + uri + ": " + response.getErrors());
+            if (response.getData() == null) throw new RuntimeException("no data in sdl response from " + uri);
+            if (response.getData().getJsonObject("_service") == null) throw new RuntimeException("no _service in sdl response from " + uri);
             var sdl = response.getData().getJsonObject("_service").getString("sdl");
             log.debug("fetched schema from {} in {}ms:\n{}", uri, t1 - t0, sdl);
             return sdl;
