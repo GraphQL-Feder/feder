@@ -1,7 +1,7 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
+import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
+import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.schema.DataFetchingEnvironment;
@@ -22,14 +22,17 @@ import java.util.Map;
 import static com.github.graphql.feder.GatewayExceptionMapper.map;
 import static java.util.stream.Collectors.toSet;
 
+/**
+ * Holds a {@link GraphQLSchema} and fetches data from the Federation <code>_entities</code> query.
+ */
 @Slf4j
 class FederatedGraphQLService {
     private final GraphQL graphql;
     private final GraphQLSchema schema;
-    private final GenericGraphQLAPI api;
+    private final GraphQLAPI client;
 
     public FederatedGraphQLService(SchemaBuilder schemaBuilder) {
-        this.api = schemaBuilder.api;
+        this.client = schemaBuilder.client;
         this.schema = schemaBuilder.build(this::fetchRepresentation);
         this.graphql = GraphQL.newGraphQL(schema).build();
     }
@@ -48,7 +51,7 @@ class FederatedGraphQLService {
                 .build())
             .build();
 
-        var response = api.request(representationsRequest);
+        var response = client.request(representationsRequest);
         var entity = response.getData().getJsonArray("_entities").get(0).asJsonObject();
 
         // GraphQL-Java doesn't like JsonObjects: it wraps strings in quotes
@@ -63,9 +66,9 @@ class FederatedGraphQLService {
     private Object mapField(JsonValue value) {
         switch (value.getValueType()) {
             case ARRAY:
-                // return map(value.asJsonArray());
+                // TODO map arrays: return map(value.asJsonArray());
             case OBJECT:
-                // return map(value.asJsonObject());
+                // TODO map objects: return map(value.asJsonObject());
                 break;
             case STRING:
                 return ((JsonString) value).getString();

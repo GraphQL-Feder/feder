@@ -7,17 +7,37 @@ import lombok.experimental.SuperBuilder;
 import javax.json.JsonObject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Generic JAX-RS API to execute arbitrary GraphQL requests.
+ */
 @Path("/graphql")
-public interface GenericGraphQLAPI {
+public interface GraphQLAPI {
     Jsonb JSONB = JsonbBuilder.create();
 
     @POST GraphQLResponse request(GraphQLRequest request);
+
+    @GET
+    @Produces("application/graphql+json")
+    default GraphQLResponse request(@QueryParam("query") String query, JsonObject variables) {
+        return request(GraphQLRequest.builder()
+            .query(query)
+            .variables(variables)
+            .build());
+    }
+
+    @GET
+    @Path("/schema.graphql")
+    @Produces("text/plain;charset=utf-8")
+    String schema();
 
     @Data @SuperBuilder @NoArgsConstructor
     class GraphQLRequest {

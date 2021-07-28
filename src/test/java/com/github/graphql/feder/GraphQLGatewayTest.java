@@ -1,7 +1,7 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
+import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
+import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
 import com.github.t1.wunderbar.junit.consumer.Service;
 import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,8 +21,8 @@ import static org.assertj.core.api.BDDAssertions.then;
 @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
 class GraphQLGatewayTest {
 
-    @Service GenericGraphQLAPI products;
-    @Service GenericGraphQLAPI prices;
+    @Service GraphQLAPI products;
+    @Service GraphQLAPI prices;
     GraphQLGateway gateway = new GraphQLGateway();
 
     enum RunMode {
@@ -42,7 +42,7 @@ class GraphQLGatewayTest {
         setup(runMode);
         gateway.services = List.of(service("urn:mock:products", products), service("urn:mock:prices", prices));
 
-        var response = gateway.graphql("{product(id:\"1\"){id name}}", null);
+        var response = gateway.request("{product(id:\"1\"){id name}}", null);
 
         then(response.getErrors()).isEmpty();
         then(response.getData("product", Product.class)).isEqualTo(Product.builder().id("1").name("Table").build());
@@ -54,13 +54,18 @@ class GraphQLGatewayTest {
         setup(runMode);
         gateway.services = List.of(service("urn:mock:prices", prices), service("urn:mock:products", products));
 
-        var response = gateway.graphql("{product(id:\"1\"){price}}", null);
+        var response = gateway.request("{product(id:\"1\"){price}}", null);
 
         then(response.getErrors()).isEmpty();
         then(response.getData("product", ProductWithPrice.class)).isEqualTo(ProductWithPrice.builder().price(399_99).build());
     }
 
     void setup(RunMode runMode) {
+        setupProducts(runMode);
+        setupPrices();
+    }
+
+    private void setupProducts(RunMode runMode) {
         givenSchema(products,
             "\"Something you can buy\"\n" +
             "type Product " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
@@ -73,6 +78,13 @@ class GraphQLGatewayTest {
             "type Query {\n" +
             "  product(id: String): Product\n" +
             "}\n");
+        givenRepresentation(products, "Product{__typename name id}",
+            "\"__typename\": \"Product\",\n" +
+            "\"id\": \"1\",\n" +
+            "\"name\": \"Table\"\n");
+    }
+
+    private void setupPrices() {
         givenSchema(prices,
             "type Product @extends @key(fields: \"id\") {\n" +
             "  id: String @external\n" +
@@ -84,20 +96,16 @@ class GraphQLGatewayTest {
             "type Query {\n" +
             "  product(id: String): Product\n" +
             "}\n");
-        givenRepresentation(products, "Product{__typename name id}",
-            "\"__typename\": \"Product\",\n" +
-            "\"id\": \"1\",\n" +
-            "\"name\": \"Table\"\n");
         givenRepresentation(prices, "Product{__typename price}",
             "\"__typename\": \"Product\",\n" +
             "\"price\": 39999\n");
     }
 
-    private FederatedGraphQLService service(String uri, GenericGraphQLAPI api) {
+    private FederatedGraphQLService service(String uri, GraphQLAPI api) {
         return new FederatedGraphQLService(new SchemaBuilder(URI.create(uri), api));
     }
 
-    private static void givenSchema(GenericGraphQLAPI service, String schema) {
+    private static void givenSchema(GraphQLAPI service, String schema) {
         given(service.request(GraphQLRequest.builder()
             .query("{_service{sdl}}")
             .build())
@@ -113,7 +121,7 @@ class GraphQLGatewayTest {
             "}")).build());
     }
 
-    private static void givenRepresentation(GenericGraphQLAPI service, String fragment, String data) {
+    private static void givenRepresentation(GraphQLAPI service, String fragment, String data) {
         given(service.request(GraphQLRequest.builder()
             .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
             .variables(Json.createObjectBuilder()

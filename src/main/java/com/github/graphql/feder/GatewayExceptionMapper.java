@@ -1,7 +1,7 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLError;
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLResponse;
+import com.github.graphql.feder.GraphQLAPI.GraphQLError;
+import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.ws.rs.core.Response;
@@ -12,6 +12,9 @@ import java.util.UUID;
 
 import static java.util.stream.Collectors.toList;
 
+/**
+ * Map exceptions to GraphQL error responses.
+ */
 @Slf4j
 @Provider
 public class GatewayExceptionMapper implements ExceptionMapper<RuntimeException> {

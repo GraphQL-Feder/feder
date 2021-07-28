@@ -1,6 +1,6 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GenericGraphQLAPI.GraphQLRequest;
+import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
 import graphql.language.FieldDefinition;
 import graphql.language.NamedNode;
 import graphql.language.Node;
@@ -26,18 +26,22 @@ import java.util.stream.Stream;
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 import static java.util.stream.Collectors.toSet;
 
+/**
+ * Fetch the schema with a <code>{_service{sdl}}</code> query and convert it to a {@link GraphQLSchema} by adding
+ * the Federation declarations.
+ */
 @Slf4j
 class SchemaBuilder {
     final URI uri;
-    final GenericGraphQLAPI api;
+    final GraphQLAPI client;
 
     SchemaBuilder(URI uri) {
-        this(uri, RestClientBuilder.newBuilder().baseUri(uri).build(GenericGraphQLAPI.class));
+        this(uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
     }
 
-    public SchemaBuilder(URI uri, GenericGraphQLAPI api) {
+    public SchemaBuilder(URI uri, GraphQLAPI client) {
         this.uri = uri;
-        this.api = api;
+        this.client = client;
     }
 
     GraphQLSchema build(DataFetcher<?> representationFetcher) {
@@ -71,7 +75,7 @@ class SchemaBuilder {
         try {
             GraphQLRequest request = GraphQLRequest.builder().query("{_service{sdl}}").build();
             var t0 = System.currentTimeMillis();
-            var response = api.request(request);
+            var response = client.request(request);
             var t1 = System.currentTimeMillis();
             if (response == null) throw new RuntimeException("no response while fetching sdl from " + uri + ". probably a mocking problem.");
             if (response.hasErrors()) throw new RuntimeException("errors while fetching sdl from " + uri + ": " + response.getErrors());
