@@ -1,9 +1,6 @@
 package com.github.graphql.feder;
 
 import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
-import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
-import graphql.ExecutionResult;
-import graphql.GraphQL;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
@@ -13,13 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.json.Json;
 import javax.json.JsonNumber;
-import javax.json.JsonObject;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 import java.util.LinkedHashMap;
-import java.util.Map;
 
-import static com.github.graphql.feder.GatewayExceptionMapper.map;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -29,12 +23,10 @@ import static java.util.stream.Collectors.toSet;
 class FederatedGraphQLService {
     @Getter private final GraphQLSchema schema;
     private final GraphQLAPI client;
-    private final GraphQL graphql;
 
-    public FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
+    FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
         this.schema = schemaBuilder.build(this::fetchRepresentation);
         this.client = schemaBuilder.client;
-        this.graphql = GraphQL.newGraphQL(schema).build();
     }
 
     private Object fetchRepresentation(DataFetchingEnvironment env) {
@@ -82,18 +74,5 @@ class FederatedGraphQLService {
                 return null;
         }
         throw new IllegalStateException("unexpected json value type " + value.getValueType());
-    }
-
-    GraphQLResponse request(GraphQLRequest request) {
-        ExecutionResult executionResult = graphql.execute(request.getQuery());
-
-        return GraphQLResponse.builder()
-            .data(json(executionResult.getData()))
-            .errors(map(executionResult.getErrors()))
-            .build();
-    }
-
-    private static JsonObject json(Map<String, Object> data) {
-        return (data == null) ? null : Json.createObjectBuilder(data).build();
     }
 }

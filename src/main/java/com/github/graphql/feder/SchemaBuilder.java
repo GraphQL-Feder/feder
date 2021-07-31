@@ -39,7 +39,7 @@ class SchemaBuilder {
         this(uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
     }
 
-    public SchemaBuilder(URI uri, GraphQLAPI client) {
+    SchemaBuilder(URI uri, GraphQLAPI client) {
         this.uri = uri;
         this.client = client;
     }

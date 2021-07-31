@@ -28,7 +28,7 @@ class GraphQLGatewayTest {
 
     @Service GraphQLAPI products;
     @Service GraphQLAPI prices;
-    GraphQLGateway gateway = new GraphQLGateway();
+    GraphQLGateway gateway;
 
     @SuppressWarnings("unused")
     enum RunMode {
@@ -45,7 +45,7 @@ class GraphQLGatewayTest {
     @Test
     void shouldGetSchema() {
         setup(WITH_DIRECTIVES);
-        gateway.services = List.of(service("urn:mock:products", products), service("urn:mock:prices", prices));
+        setup(products(), prices());
 
         var schema = gateway.schema();
 
@@ -62,7 +62,7 @@ class GraphQLGatewayTest {
     @EnumSource
     void shouldGetProduct(RunMode runMode) {
         setup(runMode);
-        gateway.services = List.of(service("urn:mock:products", products), service("urn:mock:prices", prices));
+        setup(products(), prices());
 
         var response = gateway.request("{product(id:\"1\"){id name}}", null);
 
@@ -74,7 +74,7 @@ class GraphQLGatewayTest {
     @EnumSource
     void shouldGetProductPrice(RunMode runMode) {
         setup(runMode);
-        gateway.services = List.of(service("urn:mock:prices", prices), service("urn:mock:products", products));
+        setup(prices(), products());
 
         var response = gateway.request("{product(id:\"1\"){price}}", null);
 
@@ -123,10 +123,6 @@ class GraphQLGatewayTest {
             "\"price\": 39999\n");
     }
 
-    private FederatedGraphQLService service(String uri, GraphQLAPI api) {
-        return new FederatedGraphQLService(new SchemaBuilder(URI.create(uri), api));
-    }
-
     private static void givenSchema(GraphQLAPI service, String schema) {
         given(service.request(GraphQLRequest.builder()
             .query("{_service{sdl}}")
@@ -166,5 +162,22 @@ class GraphQLGatewayTest {
 
     private static JsonObject parse(String json) {
         return Json.createReader(new StringReader(json)).readObject();
+    }
+
+
+    private void setup(FederatedGraphQLService... services) {
+        this.gateway = new GraphQLGateway(new SchemaMerger(List.of(services)).merge());
+    }
+
+    private FederatedGraphQLService prices() {
+        return service("urn:mock:prices", prices);
+    }
+
+    private FederatedGraphQLService products() {
+        return service("urn:mock:products", products);
+    }
+
+    private FederatedGraphQLService service(String uri, GraphQLAPI api) {
+        return new FederatedGraphQLService(new SchemaBuilder(URI.create(uri), api));
     }
 }
