@@ -4,18 +4,23 @@ import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
 import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
 import com.github.t1.wunderbar.junit.consumer.Service;
 import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import javax.json.Json;
 import javax.json.JsonObject;
+import java.io.File;
 import java.io.StringReader;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.List;
 
+import static com.github.graphql.feder.GraphQLGatewayTest.RunMode.WITH_DIRECTIVES;
 import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
 import static com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer.NONE;
 import static com.github.t1.wunderbar.junit.consumer.WunderbarExpectationBuilder.given;
+import static org.assertj.core.api.BDDAssertions.contentOf;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
@@ -25,15 +30,32 @@ class GraphQLGatewayTest {
     @Service GraphQLAPI prices;
     GraphQLGateway gateway = new GraphQLGateway();
 
+    @SuppressWarnings("unused")
     enum RunMode {
         WITH_DIRECTIVES {
-            @Override public String directive(String directive) { return directive; }
+            @Override public String directive(String directive) {return directive;}
         },
         WITHOUT_DIRECTIVES {
-            @Override public String directive(String directive) { return ""; }
+            @Override public String directive(String directive) {return "";}
         };
 
         public abstract String directive(String directive);
+    }
+
+    @Test
+    void shouldGetSchema() {
+        setup(WITH_DIRECTIVES);
+        gateway.services = List.of(service("urn:mock:products", products), service("urn:mock:prices", prices));
+
+        var schema = gateway.schema();
+
+        then(schema).isEqualTo(contentOf(file("src/test/resources/expected-schema.graphql")));
+    }
+
+    private File file(@SuppressWarnings("SameParameterValue") String relative) {
+        var path = Path.of(".").normalize().toAbsolutePath();
+        if (path.endsWith("target")) path = path.getParent(); // i.e. running in Quarkus Continuous Testing mode
+        return path.resolve(relative).toFile();
     }
 
     @ParameterizedTest

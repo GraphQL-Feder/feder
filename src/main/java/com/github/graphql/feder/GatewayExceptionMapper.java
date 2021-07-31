@@ -10,6 +10,8 @@ import javax.ws.rs.ext.Provider;
 import java.util.List;
 import java.util.UUID;
 
+import static com.github.graphql.feder.GraphQLAPI.APPLICATION_GRAPHQL_JSON_TYPE;
+import static com.github.graphql.feder.GraphQLAPI.JSONB;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -29,15 +31,14 @@ public class GatewayExceptionMapper implements ExceptionMapper<RuntimeException>
     @Override public Response toResponse(RuntimeException exception) {
         var uuid = UUID.randomUUID();
         log.error("mapping exception to GraphQL error [id: {}]", uuid, exception);
-        var error = map(exception)
-            .withExtension("instance", uuid);
-        return Response.ok().entity(GraphQLResponse.builder().errors(List.of(error)).build()).build();
-    }
-
-    private static GraphQLError map(RuntimeException exception) {
-        return GraphQLError.builder()
+        var error = GraphQLError.builder()
             .message(exception.getMessage())
             // TODO map more fields
+            .build()
+            .withExtension("instance", uuid);
+        GraphQLResponse graphQLResponse = GraphQLResponse.builder().errors(List.of(error)).build();
+        return Response
+            .ok(JSONB.toJson(graphQLResponse), APPLICATION_GRAPHQL_JSON_TYPE)
             .build();
     }
 }

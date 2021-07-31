@@ -1,0 +1,59 @@
+"Directs the executor to include this field or fragment only when the `if` argument is true"
+directive @include(
+    "Included when true."
+    if: Boolean!
+  ) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"Directs the executor to skip this field or fragment when the `if`'argument is true."
+directive @skip(
+    "Skipped when true."
+    if: Boolean!
+  ) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+directive @external on FIELD_DEFINITION
+
+directive @requires(fields: _FieldSet!) on FIELD_DEFINITION
+
+directive @provides(fields: _FieldSet!) on FIELD_DEFINITION
+
+directive @key(fields: _FieldSet!) repeatable on OBJECT | INTERFACE
+
+" this is an optional directive discussed below"
+directive @extends on OBJECT | INTERFACE
+
+"Marks the field or enum value as deprecated"
+directive @deprecated(
+    "The reason for the deprecation"
+    reason: String = "No longer supported"
+  ) on FIELD_DEFINITION | ENUM_VALUE
+
+"Exposes a URL that specifies the behaviour of this scalar."
+directive @specifiedBy(
+    "The URL that specifies the behaviour of this scalar."
+    url: String!
+  ) on SCALAR
+
+"This is a union of all types that use the @key directive, including both types native to the schema and extended types."
+union _Entity = Product
+
+"Something you can buy"
+type Product @key(fields : "id") {
+  description: String
+  id: ID
+  name: String
+}
+
+"Query root"
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  product(id: String): Product
+}
+
+type _Service {
+  sdl: String
+}
+
+scalar _Any
+
+scalar _FieldSet

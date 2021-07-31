@@ -8,7 +8,7 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.SelectedField;
-import graphql.schema.idl.SchemaPrinter;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.json.Json;
@@ -27,13 +27,13 @@ import static java.util.stream.Collectors.toSet;
  */
 @Slf4j
 class FederatedGraphQLService {
-    private final GraphQL graphql;
-    private final GraphQLSchema schema;
+    @Getter private final GraphQLSchema schema;
     private final GraphQLAPI client;
+    private final GraphQL graphql;
 
-    public FederatedGraphQLService(SchemaBuilder schemaBuilder) {
-        this.client = schemaBuilder.client;
+    public FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
         this.schema = schemaBuilder.build(this::fetchRepresentation);
+        this.client = schemaBuilder.client;
         this.graphql = GraphQL.newGraphQL(schema).build();
     }
 
@@ -96,6 +96,4 @@ class FederatedGraphQLService {
     private static JsonObject json(Map<String, Object> data) {
         return (data == null) ? null : Json.createObjectBuilder(data).build();
     }
-
-    public String getSchema() { return new SchemaPrinter().print(schema); }
 }

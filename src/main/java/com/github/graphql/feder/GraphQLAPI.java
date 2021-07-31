@@ -22,11 +22,13 @@ import java.util.Map;
 @Path("/graphql")
 public interface GraphQLAPI {
     Jsonb JSONB = JsonbBuilder.create();
+    String APPLICATION_GRAPHQL_JSON_TYPE = "application/graphql+json;charset=utf-8";
 
+    @Produces(APPLICATION_GRAPHQL_JSON_TYPE)
     @POST GraphQLResponse request(GraphQLRequest request);
 
     @GET
-    @Produces("application/graphql+json")
+    @Produces(APPLICATION_GRAPHQL_JSON_TYPE)
     default GraphQLResponse request(@QueryParam("query") String query, JsonObject variables) {
         return request(GraphQLRequest.builder()
             .query(query)

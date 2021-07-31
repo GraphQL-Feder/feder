@@ -35,7 +35,7 @@ class SchemaBuilder {
     final URI uri;
     final GraphQLAPI client;
 
-    SchemaBuilder(URI uri) {
+    SchemaBuilder(@SuppressWarnings("CdiInjectionPointsInspection") URI uri) {
         this(uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
     }
 
@@ -45,7 +45,7 @@ class SchemaBuilder {
     }
 
     GraphQLSchema build(DataFetcher<?> representationFetcher) {
-        TypeDefinitionRegistry typeDefinitionRegistry = buildSchema();
+        TypeDefinitionRegistry typeDefinitionRegistry = buildTypeDefinitions();
 
         var runtimeWiring = newRuntimeWiring();
         @SuppressWarnings("unchecked")
@@ -58,7 +58,7 @@ class SchemaBuilder {
         return new SchemaGenerator().makeExecutableSchema(typeDefinitionRegistry, runtimeWiring.build());
     }
 
-    private TypeDefinitionRegistry buildSchema() {
+    private TypeDefinitionRegistry buildTypeDefinitions() {
         TypeDefinitionRegistry typeDefinitionRegistry = new SchemaParser().parse(FEDERATION_SCHEMA + fetchSchema());
         var entities = typeDefinitionRegistry.types().values().stream()
             .filter(this::isEntity)
@@ -68,6 +68,12 @@ class SchemaBuilder {
             "\"This is a union of all types that use the @key directive, including both types native to the schema and extended types.\"\n" +
             "union _Entity = " + String.join(" ", entities));
         typeDefinitionRegistry.merge(additions);
+        // TODO programmatic union type. something like: typeDefinitionRegistry.add(UnionTypeDefinition.newUnionTypeDefinition()
+        //     .description(new Description(
+        //         "This is a union of all types that use the @key directive, " +
+        //         "including both types native to the schema and extended types.", null, false))
+        //         .memberTypes(entities)
+        //     .build());
         return typeDefinitionRegistry;
     }
 
