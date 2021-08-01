@@ -44,13 +44,21 @@ class GraphQLGatewayTest {
 
     @Test
     void shouldGetSchema() {
-        setup(WITH_DIRECTIVES);
-        setup(products(), prices());
+        System.setProperty("todo.test.merge.schemas", "true");
+        try {
+            setup(WITH_DIRECTIVES);
+            setup(products(), prices());
 
-        var schema = gateway.schema();
+            var schema = gateway.schema();
 
-        then(schema).isEqualTo(contentOf(file("src/test/resources/expected-schema.graphql")));
+            then(schema).isEqualTo(contentOf(file("src/test/resources/expected-schema.graphql")));
+        } finally {
+            System.clearProperty("todo.test.merge.schemas");
+        }
     }
+
+    // TODO schema with non-null arguments
+    // TODO schema with list arguments
 
     private File file(@SuppressWarnings("SameParameterValue") String relative) {
         var path = Path.of(".").normalize().toAbsolutePath();
