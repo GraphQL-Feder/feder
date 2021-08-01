@@ -48,10 +48,10 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
     @Produces
     GraphQLSchema merge() {
-        if (!Boolean.getBoolean("todo.test.merge.schemas")) return services.get(0).getSchema();
         for (var service : services) {
             new SchemaTraverser().depthFirst(this, service.getSchema().getAllTypesAsList());
         }
+        out.codeRegistry(services.get(0).getSchema().getCodeRegistry()); // TODO merge code registries
         fieldBuilders.values().forEach(FieldBuilder::build);
         typeBuilders.values().forEach(typeBuilder -> {
             var type = typeBuilder.build();

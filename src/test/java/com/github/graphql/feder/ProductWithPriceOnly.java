@@ -5,7 +5,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 @Data @SuperBuilder @NoArgsConstructor
-public class ProductWithPrice {
-    private String id;
+public class ProductWithPriceOnly {
     private Integer price;
 }

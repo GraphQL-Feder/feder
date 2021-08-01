@@ -96,7 +96,9 @@ class SchemaBuilder {
     }
 
     private boolean isEntity(TypeDefinition<?> type) {
-        return type.hasDirective("key") || (!STANDARD_TYPES.contains(type.getName()) && hasIdField(type));
+        return type.hasDirective("key") ||
+               type.hasDirective("extends") ||
+               (!STANDARD_TYPES.contains(type.getName()) && hasIdField(type));
     }
 
     private boolean hasIdField(TypeDefinition<?> typeDefinition) {

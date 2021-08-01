@@ -44,17 +44,12 @@ class GraphQLGatewayTest {
 
     @Test
     void shouldGetSchema() {
-        System.setProperty("todo.test.merge.schemas", "true");
-        try {
-            setup(WITH_DIRECTIVES);
-            setup(products(), prices());
+        setup(WITH_DIRECTIVES);
+        setup(products(), prices());
 
-            var schema = gateway.schema();
+        var schema = gateway.schema();
 
-            then(schema).isEqualTo(contentOf(file("src/test/resources/expected-schema.graphql")));
-        } finally {
-            System.clearProperty("todo.test.merge.schemas");
-        }
+        then(schema).isEqualTo(contentOf(file("src/test/resources/expected-schema.graphql")));
     }
 
     // TODO schema with non-null arguments
@@ -87,12 +82,12 @@ class GraphQLGatewayTest {
         var response = gateway.request("{product(id:\"1\"){price}}", null);
 
         then(response.getErrors()).isEmpty();
-        then(response.getData("product", ProductWithPrice.class)).isEqualTo(ProductWithPrice.builder().price(399_99).build());
+        then(response.getData("product", ProductWithPriceOnly.class)).isEqualTo(ProductWithPriceOnly.builder().price(399_99).build());
     }
 
     void setup(RunMode runMode) {
         setupProducts(runMode);
-        setupPrices();
+        setupPrices(runMode);
     }
 
     private void setupProducts(RunMode runMode) {
@@ -114,9 +109,10 @@ class GraphQLGatewayTest {
             "\"name\": \"Table\"\n");
     }
 
-    private void setupPrices() {
+    private void setupPrices(RunMode runMode) {
+        // TODO maybe we can make the `@extends` and `@external` directives optional, too
         givenSchema(prices,
-            "type Product @extends @key(fields: \"id\") {\n" +
+            "type Product @extends " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
             "  id: String @external\n" +
             "  \"The price in cent\"\n" +
             "  price: Int\n" +
