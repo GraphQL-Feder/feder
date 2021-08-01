@@ -2,7 +2,10 @@ package com.github.graphql.feder;
 
 import graphql.scalar.GraphqlIntCoercing;
 import graphql.scalar.GraphqlStringCoercing;
+import graphql.schema.DataFetcher;
+import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLFieldDefinition.Builder;
 import graphql.schema.GraphQLModifiedType;
@@ -27,8 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.graphql.feder.SchemaMerger.FieldBuilder.key;
-
 /**
  * Merge the federated services into one global GraphQL schema.
  * Application scoped as a cache. Invalidate the cache by restarting ;-)
@@ -37,27 +38,24 @@ import static com.github.graphql.feder.SchemaMerger.FieldBuilder.key;
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 class SchemaMerger extends GraphQLTypeVisitorStub {
     private final List<FederatedGraphQLService> services;
+
     private final Map<String, GraphQLObjectType.Builder> typeBuilders = new LinkedHashMap<>();
     private final Map<String, FieldBuilder> fieldBuilders = new LinkedHashMap<>();
+    private final GraphQLCodeRegistry.Builder codeRegistryBuilder = GraphQLCodeRegistry.newCodeRegistry();
     private final GraphQLSchema.Builder out = GraphQLSchema.newSchema()
         .clearDirectives()
         .clearSchemaDirectives();
 
+    private GraphQLSchema currentlyMergingSchema;
     private GraphQLObjectType.Builder currentTypeBuilder;
     private FieldBuilder currentFieldBuilder;
 
     @Produces
     GraphQLSchema merge() {
-        for (var service : services) {
-            new SchemaTraverser().depthFirst(this, service.getSchema().getAllTypesAsList());
-        }
-        out.codeRegistry(services.get(0).getSchema().getCodeRegistry()); // TODO merge code registries
-        fieldBuilders.values().forEach(FieldBuilder::build);
-        typeBuilders.values().forEach(typeBuilder -> {
-            var type = typeBuilder.build();
-            if (type.getName().equals("Query")) out.query(type);
-            else out.additionalType(type);
-        });
+        services.forEach(this::merge);
+
+        closeBuilders();
+
         // TODO why do we need these and what other types are missing?
         out.additionalType(GraphQLScalarType.newScalar()
             .name("Int")
@@ -65,7 +63,16 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         out.additionalType(GraphQLScalarType.newScalar()
             .name("ID")
             .coercing(new GraphqlStringCoercing()).build());
+
+        out.codeRegistry(codeRegistryBuilder.build());
+
         return out.build();
+    }
+
+    private void merge(FederatedGraphQLService service) {
+        this.currentlyMergingSchema = service.getSchema();
+        new SchemaTraverser().depthFirst(this, currentlyMergingSchema.getAllTypesAsList());
+        currentlyMergingSchema = null;
     }
 
     @Override public TraversalControl visitGraphQLObjectType(GraphQLObjectType node, TraverserContext<GraphQLSchemaElement> context) {
@@ -81,8 +88,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     @Override public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition node, TraverserContext<GraphQLSchemaElement> context) {
         currentFieldBuilder = null;
         if (currentTypeBuilder != null && hasStandardNodeName(node))
-            this.currentFieldBuilder = fieldBuilders.computeIfAbsent(key(node, context.getParentNode()),
-                key -> new FieldBuilder(currentTypeBuilder, node));
+            this.currentFieldBuilder = fieldBuilders.computeIfAbsent(key(node, context.getParentNode()), key -> new FieldBuilder(node));
 
         return super.visitGraphQLFieldDefinition(node, context);
     }
@@ -96,16 +102,27 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
     private static boolean hasStandardNodeName(GraphQLNamedSchemaElement node) {return !node.getName().startsWith("_");}
 
-    static class FieldBuilder {
-        static String key(GraphQLFieldDefinition node, GraphQLSchemaElement parentNode) {
-            return ((GraphQLNamedSchemaElement) parentNode).getName() + "#" + node.getName();
-        }
+    private void closeBuilders() {
+        fieldBuilders.values().forEach(FieldBuilder::build);
+        typeBuilders.values().forEach(typeBuilder -> {
+            var type = typeBuilder.build();
+            if (type.getName().equals("Query")) out.query(type);
+            else out.additionalType(type);
+        });
+    }
 
+    static String key(GraphQLFieldDefinition node, GraphQLSchemaElement parentNode) {
+        return ((GraphQLNamedSchemaElement) parentNode).getName() + "#" + node.getName();
+    }
+
+    class FieldBuilder {
+        private final GraphQLSchema mergingSchema;
         private final GraphQLObjectType.Builder typeBuilder;
         private final Builder field;
 
-        FieldBuilder(GraphQLObjectType.Builder currentTypeBuilder, GraphQLFieldDefinition node) {
-            typeBuilder = currentTypeBuilder;
+        FieldBuilder(@SuppressWarnings("CdiInjectionPointsInspection") GraphQLFieldDefinition node) {
+            this.mergingSchema = currentlyMergingSchema;
+            this.typeBuilder = currentTypeBuilder;
             this.field = GraphQLFieldDefinition.newFieldDefinition()
                 .name(node.getName())
                 .type(ref(node.getType()));
@@ -122,7 +139,13 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         }
 
         public void build() {
+            var field = this.field.build();
             typeBuilder.field(field);
+            var type = typeBuilder.build();
+            var coordinates = FieldCoordinates.coordinates(type, field);
+            DataFetcher<?> dataFetcher = mergingSchema.getCodeRegistry().getDataFetcher(coordinates,
+                mergingSchema.getObjectType(type.getName()).getFieldDefinition(field.getName()));
+            codeRegistryBuilder.dataFetcher(coordinates, dataFetcher);
         }
     }
 }

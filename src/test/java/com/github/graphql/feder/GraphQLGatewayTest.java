@@ -82,7 +82,7 @@ class GraphQLGatewayTest {
         var response = gateway.request("{product(id:\"1\"){price}}", null);
 
         then(response.getErrors()).isEmpty();
-        then(response.getData("product", ProductWithPriceOnly.class)).isEqualTo(ProductWithPriceOnly.builder().price(399_99).build());
+        then(response.getData("product", Product.class)).isEqualTo(Product.builder().price(399_99).build());
     }
 
     void setup(RunMode runMode) {
@@ -104,8 +104,11 @@ class GraphQLGatewayTest {
             "  product(id: String): Product\n" +
             "}\n");
         givenRepresentation(products, "Product{__typename name id}",
-            "\"__typename\": \"Product\",\n" +
+            "\"__typename\": \"Product\", \n" +
             "\"id\": \"1\",\n" +
+            "\"name\": \"Table\"\n");
+        givenRepresentation(products, "Product{__typename name}",
+            "\"__typename\": \"Product\", \n" +
             "\"name\": \"Table\"\n");
     }
 
@@ -123,7 +126,7 @@ class GraphQLGatewayTest {
             "  product(id: String): Product\n" +
             "}\n");
         givenRepresentation(prices, "Product{__typename price}",
-            "\"__typename\": \"Product\",\n" +
+            "\"__typename\": \"Product\", \n" +
             "\"price\": 39999\n");
     }
 

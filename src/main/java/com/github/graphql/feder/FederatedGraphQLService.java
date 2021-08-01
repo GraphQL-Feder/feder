@@ -44,6 +44,12 @@ class FederatedGraphQLService {
             .build();
 
         var response = client.request(representationsRequest);
+
+        if (response == null) throw new RuntimeException("no response from service");
+        if (response.getData() == null) throw new RuntimeException("no data from service");
+        if (response.getData().getJsonArray("_entities") == null) throw new RuntimeException("no _entities from service");
+        if (response.getData().getJsonArray("_entities").isEmpty()) throw new RuntimeException("empty _entities from service");
+        if (response.getData().getJsonArray("_entities").size() > 1) throw new RuntimeException("multiple _entities from service");
         var entity = response.getData().getJsonArray("_entities").get(0).asJsonObject();
 
         // GraphQL-Java doesn't like JsonObjects: it wraps strings in quotes
