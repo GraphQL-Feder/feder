@@ -20,5 +20,5 @@ type Product {
 
 "Query root"
 type Query {
-  product(id: String): Product
+  product(id: ID): Product
 }

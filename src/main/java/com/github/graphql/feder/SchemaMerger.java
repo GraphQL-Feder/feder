@@ -1,8 +1,8 @@
 package com.github.graphql.feder;
 
 import graphql.scalar.GraphqlIntCoercing;
-import graphql.scalar.GraphqlStringCoercing;
 import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLCodeRegistry;
@@ -26,9 +26,13 @@ import lombok.RequiredArgsConstructor;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Merge the federated services into one global GraphQL schema.
@@ -40,7 +44,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     private final List<FederatedGraphQLService> services;
 
     private final Map<String, GraphQLObjectType.Builder> typeBuilders = new LinkedHashMap<>();
-    private final Map<String, FieldBuilder> fieldBuilders = new LinkedHashMap<>();
+    private final List<FieldBuilder> fieldBuilders = new ArrayList<>();
     private final GraphQLCodeRegistry.Builder codeRegistryBuilder = GraphQLCodeRegistry.newCodeRegistry();
     private final GraphQLSchema.Builder out = GraphQLSchema.newSchema()
         .clearDirectives()
@@ -60,9 +64,6 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         out.additionalType(GraphQLScalarType.newScalar()
             .name("Int")
             .coercing(new GraphqlIntCoercing()).build());
-        out.additionalType(GraphQLScalarType.newScalar()
-            .name("ID")
-            .coercing(new GraphqlStringCoercing()).build());
 
         out.codeRegistry(codeRegistryBuilder.build());
 
@@ -88,7 +89,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     @Override public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition node, TraverserContext<GraphQLSchemaElement> context) {
         currentFieldBuilder = null;
         if (currentTypeBuilder != null && hasStandardNodeName(node))
-            this.currentFieldBuilder = fieldBuilders.computeIfAbsent(key(node, context.getParentNode()), key -> new FieldBuilder(node));
+            fieldBuilders.add(this.currentFieldBuilder = new FieldBuilder(node));
 
         return super.visitGraphQLFieldDefinition(node, context);
     }
@@ -103,16 +104,12 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     private static boolean hasStandardNodeName(GraphQLNamedSchemaElement node) {return !node.getName().startsWith("_");}
 
     private void closeBuilders() {
-        fieldBuilders.values().forEach(FieldBuilder::build);
+        fieldBuilders.forEach(FieldBuilder::build);
         typeBuilders.values().forEach(typeBuilder -> {
             var type = typeBuilder.build();
             if (type.getName().equals("Query")) out.query(type);
             else out.additionalType(type);
         });
-    }
-
-    static String key(GraphQLFieldDefinition node, GraphQLSchemaElement parentNode) {
-        return ((GraphQLNamedSchemaElement) parentNode).getName() + "#" + node.getName();
     }
 
     class FieldBuilder {
@@ -143,9 +140,34 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
             typeBuilder.field(field);
             var type = typeBuilder.build();
             var coordinates = FieldCoordinates.coordinates(type, field);
-            DataFetcher<?> dataFetcher = mergingSchema.getCodeRegistry().getDataFetcher(coordinates,
-                mergingSchema.getObjectType(type.getName()).getFieldDefinition(field.getName()));
-            codeRegistryBuilder.dataFetcher(coordinates, dataFetcher);
+            var fieldDefinition = mergingSchema.getObjectType(type.getName()).getFieldDefinition(field.getName());
+            var dataFetcher = mergingSchema.getCodeRegistry().getDataFetcher(coordinates, fieldDefinition);
+            DataFetcher<?> mergedDataFetcher = (dataFetcher instanceof FederatedGraphQLService)
+                ? new MergedDataFetcher(codeRegistryBuilder.getDataFetcher(coordinates, fieldDefinition), dataFetcher)
+                : dataFetcher;
+            codeRegistryBuilder.dataFetcher(coordinates, mergedDataFetcher);
+        }
+    }
+
+    private static class MergedDataFetcher implements DataFetcher<Object> {
+        private final List<DataFetcher<?>> dataFetchers;
+
+        public MergedDataFetcher(@SuppressWarnings("CdiInjectionPointsInspection") DataFetcher<?>... dataFetchers) {
+            this.dataFetchers = Stream.of(dataFetchers).flatMap(dataFetcher ->
+                (dataFetcher instanceof MergedDataFetcher)
+                    ? ((MergedDataFetcher) dataFetcher).dataFetchers.stream()
+                    : Stream.of(dataFetcher)).collect(toList());
+        }
+
+        @Override public Object get(DataFetchingEnvironment environment) throws Exception {
+            Map<String, Object> out = null;
+            for (var dataFetcher : dataFetchers) {
+                @SuppressWarnings("unchecked")
+                var value = (Map<String, Object>) dataFetcher.get(environment);
+                if (out == null) out = value;
+                else out.putAll(value);
+            }
+            return out;
         }
     }
 }

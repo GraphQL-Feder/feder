@@ -1,7 +1,9 @@
 package com.github.graphql.feder;
 
 import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
+import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.SelectedField;
@@ -12,26 +14,36 @@ import javax.json.Json;
 import javax.json.JsonNumber;
 import javax.json.JsonString;
 import javax.json.JsonValue;
+import java.net.URI;
 import java.util.LinkedHashMap;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 /**
  * Holds a {@link GraphQLSchema} and fetches data from the Federation <code>_entities</code> query.
  */
 @Slf4j
-class FederatedGraphQLService {
+class FederatedGraphQLService implements DataFetcher<Object> {
     @Getter private final GraphQLSchema schema;
+    private final URI uri;
     private final GraphQLAPI client;
 
     FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
-        this.schema = schemaBuilder.build(this::fetchRepresentation);
+        this.schema = schemaBuilder.build(this);
+        this.uri = schemaBuilder.uri;
         this.client = schemaBuilder.client;
     }
 
-    private Object fetchRepresentation(DataFetchingEnvironment env) {
+    @Override
+    public Object get(DataFetchingEnvironment env) {
         var typename = ((GraphQLObjectType) env.getFieldType()).getName();
-        var selectedFields = env.getSelectionSet().getFields().stream().map(SelectedField::getName).collect(toSet());
+        var availableFields = schema.getObjectType(typename).getFieldDefinitions().stream().map(GraphQLFieldDefinition::getName).collect(toList());
+        var selectedFields = env.getSelectionSet().getFields().stream()
+            .map(SelectedField::getName)
+            .filter(availableFields::contains)
+            .collect(toSet());
+        if (selectedFields.isEmpty()) return new LinkedHashMap<>();
         var fragment = typename + "{" + (selectedFields.contains("__typename") ? "" : "__typename ") + String.join(" ", selectedFields) + "}";
         GraphQLRequest representationsRequest = GraphQLRequest.builder()
             .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
@@ -45,11 +57,12 @@ class FederatedGraphQLService {
 
         var response = client.request(representationsRequest);
 
-        if (response == null) throw new RuntimeException("no response from service");
-        if (response.getData() == null) throw new RuntimeException("no data from service");
-        if (response.getData().getJsonArray("_entities") == null) throw new RuntimeException("no _entities from service");
-        if (response.getData().getJsonArray("_entities").isEmpty()) throw new RuntimeException("empty _entities from service");
-        if (response.getData().getJsonArray("_entities").size() > 1) throw new RuntimeException("multiple _entities from service");
+        if (response == null) throw new FederationServiceException("selecting " + selectedFields + " => null response");
+        if (response.hasErrors()) throw new FederationException("errors from service " + uri + ": " + response.getErrors());
+        if (response.getData() == null) throw new FederationServiceException("no data");
+        if (response.getData().getJsonArray("_entities") == null) throw new FederationServiceException("no _entities");
+        if (response.getData().getJsonArray("_entities").isEmpty()) throw new FederationServiceException("empty _entities");
+        if (response.getData().getJsonArray("_entities").size() > 1) throw new FederationServiceException("multiple _entities");
         var entity = response.getData().getJsonArray("_entities").get(0).asJsonObject();
 
         // GraphQL-Java doesn't like JsonObjects: it wraps strings in quotes
@@ -79,6 +92,10 @@ class FederatedGraphQLService {
             case NULL:
                 return null;
         }
-        throw new IllegalStateException("unexpected json value type " + value.getValueType());
+        throw new FederationException("unexpected json value type " + value.getValueType());
+    }
+
+    private class FederationServiceException extends FederationException {
+        public FederationServiceException(String message) {super(message + " from service " + uri);}
     }
 }

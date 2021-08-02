@@ -54,6 +54,8 @@ class GraphQLGatewayTest {
 
     // TODO schema with non-null arguments
     // TODO schema with list arguments
+    // TODO fail when selecting a field unknown to all backends
+    // TODO partial results when some backends fail
 
     private File file(@SuppressWarnings("SameParameterValue") String relative) {
         var path = Path.of(".").normalize().toAbsolutePath();
@@ -85,6 +87,18 @@ class GraphQLGatewayTest {
         then(response.getData("product", Product.class)).isEqualTo(Product.builder().price(399_99).build());
     }
 
+    @ParameterizedTest
+    @EnumSource
+    void shouldGetProductNameAndPrice(RunMode runMode) {
+        setup(runMode);
+        setup(products(), prices());
+
+        var response = gateway.request("{product(id:\"1\"){name price}}", null);
+
+        then(response.getErrors()).isEmpty();
+        then(response.getData("product", Product.class)).isEqualTo(Product.builder().name("Table").price(399_99).build());
+    }
+
     void setup(RunMode runMode) {
         setupProducts(runMode);
         setupPrices(runMode);
@@ -101,7 +115,7 @@ class GraphQLGatewayTest {
             "\n" +
             "\"Query root\"\n" +
             "type Query {\n" +
-            "  product(id: String): Product\n" +
+            "  product(id: ID): Product\n" +
             "}\n");
         givenRepresentation(products, "Product{__typename name id}",
             "\"__typename\": \"Product\", \n" +
@@ -110,24 +124,30 @@ class GraphQLGatewayTest {
         givenRepresentation(products, "Product{__typename name}",
             "\"__typename\": \"Product\", \n" +
             "\"name\": \"Table\"\n");
+        givenRepresentation(products, "Product{__typename id}", // TODO this should be unnecessary to call
+            "\"__typename\": \"Product\", \n" +
+            "\"id\": \"1\"\n");
     }
 
     private void setupPrices(RunMode runMode) {
-        // TODO maybe we can make the `@extends` and `@external` directives optional, too
+        // TODO maybe we can make the `@extends` directive optional, too
         givenSchema(prices,
             "type Product @extends " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
-            "  id: String @external\n" +
+            "  id: ID" + runMode.directive(" @external") + "\n" +
             "  \"The price in cent\"\n" +
             "  price: Int\n" +
             "}\n" +
             "\n" +
             "\"Query root\"\n" +
             "type Query {\n" +
-            "  product(id: String): Product\n" +
+            "  product(id: ID): Product\n" +
             "}\n");
         givenRepresentation(prices, "Product{__typename price}",
             "\"__typename\": \"Product\", \n" +
             "\"price\": 39999\n");
+        givenRepresentation(prices, "Product{__typename id}", // TODO this should be unnecessary to call
+            "\"__typename\": \"Product\", \n" +
+            "\"id\": \"1\"\n");
     }
 
     private static void givenSchema(GraphQLAPI service, String schema) {

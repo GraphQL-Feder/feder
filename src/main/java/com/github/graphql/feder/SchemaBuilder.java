@@ -64,16 +64,10 @@ class SchemaBuilder {
             .filter(this::isEntity)
             .map(NamedNode::getName)
             .collect(toSet());
-        TypeDefinitionRegistry additions = new SchemaParser().parse(
-            "\"This is a union of all types that use the @key directive, including both types native to the schema and extended types.\"\n" +
-            "union _Entity = " + String.join(" ", entities));
-        typeDefinitionRegistry.merge(additions);
+        typeDefinitionRegistry.merge(new SchemaParser().parse(
+            "union _Entity = " + String.join(" ", entities)));
         // TODO programmatic union type. something like: typeDefinitionRegistry.add(UnionTypeDefinition.newUnionTypeDefinition()
-        //     .description(new Description(
-        //         "This is a union of all types that use the @key directive, " +
-        //         "including both types native to the schema and extended types.", null, false))
-        //         .memberTypes(entities)
-        //     .build());
+        //         .memberTypes(entities).build());
         return typeDefinitionRegistry;
     }
 
@@ -83,15 +77,15 @@ class SchemaBuilder {
             var t0 = System.currentTimeMillis();
             var response = client.request(request);
             var t1 = System.currentTimeMillis();
-            if (response == null) throw new RuntimeException("no response while fetching sdl from " + uri + ". probably a mocking problem.");
-            if (response.hasErrors()) throw new RuntimeException("errors while fetching sdl from " + uri + ": " + response.getErrors());
-            if (response.getData() == null) throw new RuntimeException("no data in sdl response from " + uri);
-            if (response.getData().getJsonObject("_service") == null) throw new RuntimeException("no _service in sdl response from " + uri);
+            if (response == null) throw new SchemaFetchingException("null response");
+            if (response.hasErrors()) throw new FederationException("errors from service " + uri + ": " + response.getErrors());
+            if (response.getData() == null) throw new SchemaFetchingException("no data");
+            if (response.getData().getJsonObject("_service") == null) throw new SchemaFetchingException("no _service");
             var sdl = response.getData().getJsonObject("_service").getString("sdl");
             log.debug("fetched schema from {} in {}ms:\n{}", uri, t1 - t0, sdl);
             return sdl;
         } catch (RuntimeException e) {
-            throw new RuntimeException("can't fetch GraphQL schema from " + uri, e);
+            throw new FederationException("can't fetch GraphQL schema from " + uri, e);
         }
     }
 
@@ -145,4 +139,8 @@ class SchemaBuilder {
         "\n" +
         "# this is an optional directive discussed below\n" +
         "directive @extends on OBJECT | INTERFACE\n\n";
+
+    private class SchemaFetchingException extends FederationException {
+        public SchemaFetchingException(String message) {super(message + " while fetching sdl from " + uri);}
+    }
 }
