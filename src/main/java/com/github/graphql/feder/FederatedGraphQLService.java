@@ -16,6 +16,7 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 import java.net.URI;
 import java.util.LinkedHashMap;
+import java.util.Set;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -28,11 +29,13 @@ class FederatedGraphQLService implements DataFetcher<Object> {
     @Getter private final GraphQLSchema schema;
     private final URI uri;
     private final GraphQLAPI client;
+    private final String idFieldName;
 
     FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
         this.schema = schemaBuilder.build(this);
         this.uri = schemaBuilder.uri;
         this.client = schemaBuilder.client;
+        this.idFieldName = "id"; // TODO derive from @key
     }
 
     @Override
@@ -43,14 +46,14 @@ class FederatedGraphQLService implements DataFetcher<Object> {
             .map(SelectedField::getName)
             .filter(availableFields::contains)
             .collect(toSet());
-        if (selectedFields.isEmpty()) return new LinkedHashMap<>();
+        if (selectedFields.isEmpty() || selectedFields.equals(Set.of(idFieldName))) return new LinkedHashMap<>();
         var fragment = typename + "{" + (selectedFields.contains("__typename") ? "" : "__typename ") + String.join(" ", selectedFields) + "}";
         GraphQLRequest representationsRequest = GraphQLRequest.builder()
             .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
             .variables(Json.createObjectBuilder()
                 .add("representations", Json.createObjectBuilder()
                     .add("__typename", typename)
-                    .add("id", env.getArgument("id").toString()) // TODO derive from @key
+                    .add(idFieldName, env.getArgument(idFieldName).toString())
                     .build())
                 .build())
             .build();

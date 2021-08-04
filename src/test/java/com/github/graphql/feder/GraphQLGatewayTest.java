@@ -124,15 +124,11 @@ class GraphQLGatewayTest {
         givenRepresentation(products, "Product{__typename name}",
             "\"__typename\": \"Product\", \n" +
             "\"name\": \"Table\"\n");
-        givenRepresentation(products, "Product{__typename id}", // TODO this should be unnecessary to call
-            "\"__typename\": \"Product\", \n" +
-            "\"id\": \"1\"\n");
     }
 
     private void setupPrices(RunMode runMode) {
-        // TODO maybe we can make the `@extends` directive optional, too
         givenSchema(prices,
-            "type Product @extends " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
+            "type Product " + runMode.directive("@extends @key(fields: \"id\") ") + "{\n" +
             "  id: ID" + runMode.directive(" @external") + "\n" +
             "  \"The price in cent\"\n" +
             "  price: Int\n" +
@@ -145,9 +141,6 @@ class GraphQLGatewayTest {
         givenRepresentation(prices, "Product{__typename price}",
             "\"__typename\": \"Product\", \n" +
             "\"price\": 39999\n");
-        givenRepresentation(prices, "Product{__typename id}", // TODO this should be unnecessary to call
-            "\"__typename\": \"Product\", \n" +
-            "\"id\": \"1\"\n");
     }
 
     private static void givenSchema(GraphQLAPI service, String schema) {
