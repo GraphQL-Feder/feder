@@ -190,14 +190,14 @@ class GraphQLGatewayTest {
     }
 
     private FederatedGraphQLService prices() {
-        return service("urn:mock:prices", prices);
+        return service("price", "urn:mock:prices", prices);
     }
 
     private FederatedGraphQLService products() {
-        return service("urn:mock:products", products);
+        return service("product", "urn:mock:products", products);
     }
 
-    private FederatedGraphQLService service(String uri, GraphQLAPI api) {
-        return new FederatedGraphQLService(new SchemaBuilder(URI.create(uri), api));
+    private FederatedGraphQLService service(String name, String uri, GraphQLAPI api) {
+        return new FederatedGraphQLService(new SchemaBuilder(name, URI.create(uri), api));
     }
 }

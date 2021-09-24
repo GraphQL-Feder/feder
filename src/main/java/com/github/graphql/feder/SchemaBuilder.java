@@ -21,6 +21,7 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
@@ -32,14 +33,16 @@ import static java.util.stream.Collectors.toSet;
  */
 @Slf4j
 class SchemaBuilder {
+    final String name;
     final URI uri;
     final GraphQLAPI client;
 
-    SchemaBuilder(@SuppressWarnings("CdiInjectionPointsInspection") URI uri) {
-        this(uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
+    public SchemaBuilder(@SuppressWarnings("CdiInjectionPointsInspection") Map.Entry<String, URI> entry) {
+        this(entry.getKey(), entry.getValue(), RestClientBuilder.newBuilder().baseUri(entry.getValue()).build(GraphQLAPI.class));
     }
 
-    SchemaBuilder(URI uri, GraphQLAPI client) {
+    SchemaBuilder(String name, URI uri, GraphQLAPI client) {
+        this.name = name;
         this.uri = uri;
         this.client = client;
     }

@@ -26,15 +26,17 @@ import static java.util.stream.Collectors.toSet;
  */
 @Slf4j
 class FederatedGraphQLService implements DataFetcher<Object> {
+    private final String name; // TODO add a `@boundedContext` directive to all fields from this service
     @Getter private final GraphQLSchema schema;
     private final URI uri;
     private final GraphQLAPI client;
     private final String idFieldName;
 
     FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
-        this.schema = schemaBuilder.build(this);
+        this.name = schemaBuilder.name;
         this.uri = schemaBuilder.uri;
         this.client = schemaBuilder.client;
+        this.schema = schemaBuilder.build(this);
         this.idFieldName = "id"; // TODO derive from @key
     }
 

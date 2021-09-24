@@ -43,7 +43,7 @@ import static java.util.stream.Collectors.toList;
 class SchemaMerger extends GraphQLTypeVisitorStub {
     private final List<FederatedGraphQLService> services;
 
-    private final Map<String, GraphQLObjectType.Builder> typeBuilders = new LinkedHashMap<>();
+    private final Map<String, TypeBuilder> typeBuilders = new LinkedHashMap<>();
     private final List<FieldBuilder> fieldBuilders = new ArrayList<>();
     private final GraphQLCodeRegistry.Builder codeRegistryBuilder = GraphQLCodeRegistry.newCodeRegistry();
     private final GraphQLSchema.Builder out = GraphQLSchema.newSchema()
@@ -51,7 +51,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         .clearSchemaDirectives();
 
     private GraphQLSchema currentlyMergingSchema;
-    private GraphQLObjectType.Builder currentTypeBuilder;
+    private TypeBuilder currentTypeBuilder;
     private FieldBuilder currentFieldBuilder;
 
     @Produces
@@ -64,6 +64,10 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         out.additionalType(GraphQLScalarType.newScalar()
             .name("Int")
             .coercing(new GraphqlIntCoercing()).build());
+        if (out.build().getType("ID") == null)
+            out.additionalType(GraphQLScalarType.newScalar()
+                .name("ID")
+                .coercing(new GraphqlIntCoercing()).build());
 
         out.codeRegistry(codeRegistryBuilder.build());
 
@@ -79,9 +83,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     @Override public TraversalControl visitGraphQLObjectType(GraphQLObjectType node, TraverserContext<GraphQLSchemaElement> context) {
         currentTypeBuilder = null;
         if (hasStandardNodeName(node))
-            this.currentTypeBuilder = typeBuilders.computeIfAbsent(node.getName(), name -> GraphQLObjectType.newObject()
-                .name(name)
-                .description(node.getDescription()));
+            this.currentTypeBuilder = typeBuilders.computeIfAbsent(node.getName(), name -> new TypeBuilder(node));
 
         return super.visitGraphQLObjectType(node, context);
     }
@@ -112,9 +114,31 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         });
     }
 
+    class TypeBuilder {
+        private final GraphQLObjectType.Builder type;
+
+        public TypeBuilder(@SuppressWarnings("CdiInjectionPointsInspection") GraphQLObjectType node) {
+            this.type = GraphQLObjectType.newObject()
+                .name(node.getName())
+                .description(node.getDescription());
+        }
+
+        @Override public String toString() {
+            return "TypeBuilder(" + type + ')';
+        }
+
+        public void add(GraphQLFieldDefinition field) {
+            type.field(field);
+        }
+
+        public GraphQLObjectType build() {
+            return type.build();
+        }
+    }
+
     class FieldBuilder {
         private final GraphQLSchema mergingSchema;
-        private final GraphQLObjectType.Builder typeBuilder;
+        private final TypeBuilder typeBuilder;
         private final Builder field;
 
         FieldBuilder(@SuppressWarnings("CdiInjectionPointsInspection") GraphQLFieldDefinition node) {
@@ -137,7 +161,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
         public void build() {
             var field = this.field.build();
-            typeBuilder.field(field);
+            typeBuilder.add(field);
             var type = typeBuilder.build();
             var coordinates = FieldCoordinates.coordinates(type, field);
             var fieldDefinition = mergingSchema.getObjectType(type.getName()).getFieldDefinition(field.getName());
