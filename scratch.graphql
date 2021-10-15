@@ -1,0 +1,11 @@
+{
+    product(id: "1") {
+        name
+        ...productFragment
+    }
+}
+
+fragment productFragment on Product {
+    id
+    description
+}
