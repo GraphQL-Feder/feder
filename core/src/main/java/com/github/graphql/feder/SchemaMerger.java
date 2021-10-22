@@ -64,10 +64,6 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         out.additionalType(GraphQLScalarType.newScalar()
             .name("Int")
             .coercing(new GraphqlIntCoercing()).build());
-        if (out.build().getType("ID") == null)
-            out.additionalType(GraphQLScalarType.newScalar()
-                .name("ID")
-                .coercing(new GraphqlIntCoercing()).build());
 
         out.codeRegistry(codeRegistryBuilder.build());
 

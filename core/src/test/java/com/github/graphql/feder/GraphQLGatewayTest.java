@@ -71,7 +71,7 @@ class GraphQLGatewayTest {
 
         var response = gateway.request("{product(id:\"1\"){id name}}", null);
 
-        then(response.getErrors()).isEmpty();
+        then(response.getErrors()).isNull();
         then(response.getData("product", Product.class)).isEqualTo(Product.builder().id("1").name("Table").build());
     }
 
@@ -83,7 +83,7 @@ class GraphQLGatewayTest {
 
         var response = gateway.request("{product(id:\"1\"){price}}", null);
 
-        then(response.getErrors()).isEmpty();
+        then(response.getErrors()).isNull();
         then(response.getData("product", Product.class)).isEqualTo(Product.builder().price(399_99).build());
     }
 
@@ -95,7 +95,7 @@ class GraphQLGatewayTest {
 
         var response = gateway.request("{product(id:\"1\"){name price}}", null);
 
-        then(response.getErrors()).isEmpty();
+        then(response.getErrors()).isNull();
         then(response.getData("product", Product.class)).isEqualTo(Product.builder().name("Table").price(399_99).build());
     }
 

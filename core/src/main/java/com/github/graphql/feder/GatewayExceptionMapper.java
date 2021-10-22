@@ -21,7 +21,7 @@ import static java.util.stream.Collectors.toList;
 @Provider
 public class GatewayExceptionMapper implements ExceptionMapper<RuntimeException> {
     static List<GraphQLError> map(List<graphql.GraphQLError> errors) {
-        return (errors == null) ? null : errors.stream().map(GatewayExceptionMapper::map).collect(toList());
+        return (errors == null || errors.isEmpty()) ? null : errors.stream().map(GatewayExceptionMapper::map).collect(toList());
     }
 
     static GraphQLError map(graphql.GraphQLError graphQLError) {
