@@ -40,7 +40,8 @@
         <dependency>
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
-            <version>16.2</version>
+            <!--suppress MavenPackageUpdate -->
+            <version>17.3</version>
         </dependency>
 
         <dependency>
