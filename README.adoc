@@ -5,7 +5,7 @@
 
 '''
 
-image::doc/feder.png[]
+image::doc/feder.png[scaledwidth=50%]
 
 A lightweight https://www.apollographql.com/docs/federation/federation-spec[GraphQL Federation] server.
 
