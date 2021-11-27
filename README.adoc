@@ -3,7 +3,7 @@
 [sidebar]
 *#Status: EXPERIMENTAL#*
 
------
+'''
 
 image::doc/feder.png[]
 
