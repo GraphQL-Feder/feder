@@ -1,7 +1,9 @@
 = GraphQL Feder(ation) Server image:https://github.com/graphql-feder/feder/actions/workflows/maven.yml/badge.svg[link=https://github.com/graphql-feder/feder/actions/workflows/maven.yml]
 
 [sidebar]
-[.big.text-center]*#Status: EXPERIMENTAL#*
+*#Status: EXPERIMENTAL#*
+
+-----
 
 image::doc/feder.png[]
 
