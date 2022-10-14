@@ -1,4 +1,4 @@
-package com.github.graphql.feder.demo.price;
+package com.github.graphql.feder.demo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

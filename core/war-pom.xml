@@ -43,7 +43,6 @@
 
     <build>
         <finalName>ROOT</finalName>
-        <defaultGoal>verify</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
