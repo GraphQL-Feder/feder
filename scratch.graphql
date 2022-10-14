@@ -1,11 +1,17 @@
-{
-    product(id: "1") {
-        name
-        ...productFragment
+query price {
+    product(id:"1"){
+        id price
     }
 }
 
-fragment productFragment on Product {
-    id
-    description
+query product {
+    product(id:"1"){
+        id name description
+    }
+}
+
+query productAndPrice {
+    product(id:"1"){
+        id name description price
+    }
 }

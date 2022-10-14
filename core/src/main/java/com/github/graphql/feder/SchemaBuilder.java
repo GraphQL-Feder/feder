@@ -89,10 +89,10 @@ class SchemaBuilder {
             if (response.getData() == null) throw new SchemaFetchingException("no data");
             if (response.getData().getJsonObject("_service") == null) throw new SchemaFetchingException("no _service");
             var sdl = response.getData().getJsonObject("_service").getString("sdl");
-            log.debug("fetched schema from {} in {}ms:\n{}", uri, t1 - t0, sdl);
+            log.debug("fetched GraphQL Federation schema from {} in {}ms:\n{}", uri, t1 - t0, sdl);
             return sdl;
         } catch (RuntimeException e) {
-            throw new FederationException("can't fetch GraphQL schema from " + uri, e);
+            throw new FederationException("can't fetch GraphQL Federation schema from " + uri, e);
         }
     }
 

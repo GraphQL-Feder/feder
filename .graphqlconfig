@@ -3,8 +3,22 @@
   "schemaPath": "schema.graphql",
   "extensions": {
     "endpoints": {
-      "local": {
+      "federation": {
         "url": "http://localhost:8080/graphql",
+        "headers": {
+          "user-agent": "JS GraphQL"
+        },
+        "introspect": false
+      },
+      "product": {
+        "url": "http://localhost:8082/graphql",
+        "headers": {
+          "user-agent": "JS GraphQL"
+        },
+        "introspect": false
+      },
+      "price": {
+        "url": "http://localhost:8083/graphql",
         "headers": {
           "user-agent": "JS GraphQL"
         },
