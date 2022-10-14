@@ -33,12 +33,16 @@ import static java.util.stream.Collectors.toSet;
  */
 @Slf4j
 class SchemaBuilder {
+    static SchemaBuilder of(Map.Entry<String, URI> entry) {
+        return new SchemaBuilder(entry.getKey(), entry.getValue());
+    }
+
     final String name;
     final URI uri;
     final GraphQLAPI client;
 
-    public SchemaBuilder(@SuppressWarnings("CdiInjectionPointsInspection") Map.Entry<String, URI> entry) {
-        this(entry.getKey(), entry.getValue(), RestClientBuilder.newBuilder().baseUri(entry.getValue()).build(GraphQLAPI.class));
+    SchemaBuilder(String name, URI uri) {
+        this(name, uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
     }
 
     SchemaBuilder(String name, URI uri, GraphQLAPI client) {

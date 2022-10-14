@@ -30,7 +30,7 @@ public class GatewayExceptionMapper implements ExceptionMapper<RuntimeException>
 
     @Override public Response toResponse(RuntimeException exception) {
         var uuid = UUID.randomUUID();
-        log.error("mapping exception to GraphQL error [id: {}]", uuid, exception);
+        log.error("mapping exception to GraphQL error [id: " + uuid + "]", exception);
         var error = GraphQLError.builder()
             .message(exception.getMessage())
             // TODO map more fields

@@ -32,7 +32,7 @@ class FederatedGraphQLService implements DataFetcher<Object> {
     private final GraphQLAPI client;
     private final String idFieldName;
 
-    FederatedGraphQLService(@SuppressWarnings("CdiInjectionPointsInspection") SchemaBuilder schemaBuilder) {
+    FederatedGraphQLService(SchemaBuilder schemaBuilder) {
         this.name = schemaBuilder.name;
         this.uri = schemaBuilder.uri;
         this.client = schemaBuilder.client;
@@ -43,8 +43,12 @@ class FederatedGraphQLService implements DataFetcher<Object> {
     @Override
     public Object get(DataFetchingEnvironment env) {
         var typename = ((GraphQLObjectType) env.getFieldType()).getName();
-        var availableFields = schema.getObjectType(typename).getFieldDefinitions().stream().map(GraphQLFieldDefinition::getName).collect(toList());
-        var selectedFields = env.getSelectionSet().getFields().stream()
+        var availableFields = schema.getObjectType(typename)
+            .getFieldDefinitions().stream()
+            .map(GraphQLFieldDefinition::getName)
+            .collect(toList());
+        var selectedFields = env.getSelectionSet()
+            .getFields().stream()
             .map(SelectedField::getName)
             .filter(availableFields::contains)
             .collect(toSet());
@@ -63,12 +67,13 @@ class FederatedGraphQLService implements DataFetcher<Object> {
         var response = client.request(representationsRequest);
 
         if (response == null) throw new FederationServiceException("selecting " + selectedFields + " => null response");
-        if (response.hasErrors()) throw new FederationException("errors from service " + uri + ": " + response.getErrors());
+        if (response.hasErrors()) throw new FederationServiceException(response.getErrors());
         if (response.getData() == null) throw new FederationServiceException("no data");
-        if (response.getData().getJsonArray("_entities") == null) throw new FederationServiceException("no _entities");
-        if (response.getData().getJsonArray("_entities").isEmpty()) throw new FederationServiceException("empty _entities");
-        if (response.getData().getJsonArray("_entities").size() > 1) throw new FederationServiceException("multiple _entities");
-        var entity = response.getData().getJsonArray("_entities").get(0).asJsonObject();
+        var entities = response.getData().getJsonArray("_entities");
+        if (entities == null) throw new FederationServiceException("no _entities");
+        if (entities.isEmpty()) throw new FederationServiceException("empty _entities");
+        if (entities.size() > 1) throw new FederationServiceException("multiple _entities");
+        var entity = entities.get(0).asJsonObject();
 
         // GraphQL-Java doesn't like JsonObjects: it wraps strings in quotes
         // var out = Json.createObjectBuilder(entity);
@@ -97,10 +102,10 @@ class FederatedGraphQLService implements DataFetcher<Object> {
             case NULL:
                 return null;
         }
-        throw new FederationException("unexpected json value type " + value.getValueType());
+        throw new UnsupportedOperationException("unexpected json value type " + value.getValueType());
     }
 
     private class FederationServiceException extends FederationException {
-        public FederationServiceException(String message) {super(message + " from service " + uri);}
+        public FederationServiceException(Object message) {super("[from service " + name + " at " + uri + "]: " + message);}
     }
 }

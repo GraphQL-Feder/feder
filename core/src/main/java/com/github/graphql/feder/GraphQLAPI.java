@@ -53,9 +53,8 @@ public interface GraphQLAPI {
         List<GraphQLError> errors;
 
         public <T> T getData(String name, Class<T> type) {
-            if (data == null) return null;
-            var jsonValue = data.get(name);
-            return (jsonValue == null) ? null : JSONB.fromJson(jsonValue.toString(), type);
+            var value = (data == null) ? null : data.get(name);
+            return (value == null) ? null : JSONB.fromJson(value.toString(), type);
         }
 
         public boolean hasErrors() { return errors != null && !errors.isEmpty(); }

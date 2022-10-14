@@ -11,7 +11,7 @@ import java.util.Map;
 
 import static java.util.stream.Collectors.toList;
 
-@Dependent
+@Dependent // TODO ApplicationScoped
 class ServiceProducer {
     @Inject
     @ConfigProperty(name = "graphql.service")
@@ -20,7 +20,7 @@ class ServiceProducer {
     @Produces
     List<FederatedGraphQLService> services() {
         return serviceUris.entrySet().stream()
-            .map(SchemaBuilder::new)
+            .map(SchemaBuilder::of)
             .map(FederatedGraphQLService::new)
             .collect(toList());
     }
