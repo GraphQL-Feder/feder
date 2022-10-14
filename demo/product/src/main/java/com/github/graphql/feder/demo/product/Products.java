@@ -1,4 +1,4 @@
-package com.github.graphql.feder.demo;
+package com.github.graphql.feder.demo.product;
 
 import org.eclipse.microprofile.graphql.GraphQLApi;
 import org.eclipse.microprofile.graphql.NonNull;
