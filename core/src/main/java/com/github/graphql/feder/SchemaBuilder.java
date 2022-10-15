@@ -6,10 +6,12 @@ import graphql.language.NamedNode;
 import graphql.language.Node;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
+import graphql.scalar.GraphqlIntCoercing;
 import graphql.scalar.GraphqlStringCoercing;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.RuntimeWiring.Builder;
 import graphql.schema.idl.SchemaDirectiveWiring;
 import graphql.schema.idl.SchemaGenerator;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -54,7 +55,14 @@ class SchemaBuilder {
     GraphQLSchema build(DataFetcher<?> representationFetcher) {
         TypeDefinitionRegistry typeDefinitionRegistry = buildTypeDefinitions();
 
-        var runtimeWiring = newRuntimeWiring();
+        var runtimeWiring = RuntimeWiring.newRuntimeWiring();
+        // TODO why do we need these and what other types are missing?
+        runtimeWiring.scalar(GraphQLScalarType.newScalar()
+            .name("BigDecimal")
+            .coercing(new GraphqlIntCoercing()).build());
+        runtimeWiring.scalar(GraphQLScalarType.newScalar()
+            .name("BigInteger")
+            .coercing(new GraphqlIntCoercing()).build());
         @SuppressWarnings("unchecked")
         var queries = (List<FieldDefinition>) typeDefinitionRegistry.getType("Query").orElseThrow().getChildren();
         queries.forEach(query ->
@@ -145,7 +153,8 @@ class SchemaBuilder {
         "directive @key(fields: _FieldSet!) repeatable on OBJECT | INTERFACE\n" +
         "\n" +
         "# this is an optional directive discussed below\n" +
-        "directive @extends on OBJECT | INTERFACE\n\n";
+        "directive @extends on OBJECT | INTERFACE\n" +
+        "\n";
 
     private class SchemaFetchingException extends FederationException {
         public SchemaFetchingException(String message) {super(message + " while fetching sdl from " + uri);}

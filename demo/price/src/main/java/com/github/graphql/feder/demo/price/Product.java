@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import org.eclipse.microprofile.graphql.Description;
 import org.eclipse.microprofile.graphql.Id;
 
+// @Key(fields = "id")
 @Data @SuperBuilder @NoArgsConstructor
 public class Product {
     @Id String id;

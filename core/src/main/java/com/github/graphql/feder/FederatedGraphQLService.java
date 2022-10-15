@@ -7,17 +7,15 @@ import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.SelectedField;
+import jakarta.json.Json;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.json.Json;
-import javax.json.JsonNumber;
-import javax.json.JsonString;
-import javax.json.JsonValue;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
+import static com.github.graphql.feder.JsonMapper.map;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -64,7 +62,9 @@ class FederatedGraphQLService implements DataFetcher<Object> {
                 .build())
             .build();
 
+        log.info("send request to {} at {}: {}", name, uri, representationsRequest);
         var response = client.request(representationsRequest);
+        log.info("got response from {} at {}: {}", name, uri, response);
 
         if (response == null) throw new FederationServiceException("selecting " + selectedFields + " => null response");
         if (response.hasErrors()) throw new FederationServiceException(response.getErrors());
@@ -76,33 +76,12 @@ class FederatedGraphQLService implements DataFetcher<Object> {
         var entity = entities.get(0).asJsonObject();
 
         // GraphQL-Java doesn't like JsonObjects: it wraps strings in quotes
-        // var out = Json.createObjectBuilder(entity);
-        // if (!selectedFields.contains("__typename")) out.remove("__typename");
-        // return out.build();
+        //| var out = Json.createObjectBuilder(entity);
+        //| if (!selectedFields.contains("__typename")) out.remove("__typename");
+        //| return out.build();
         var out = new LinkedHashMap<>();
-        selectedFields.forEach(fieldName -> out.put(fieldName, mapField(entity.getValue("/" + fieldName))));
+        selectedFields.forEach(fieldName -> out.put(fieldName, map(entity.getValue("/" + fieldName))));
         return out;
-    }
-
-    private Object mapField(JsonValue value) {
-        switch (value.getValueType()) {
-            case ARRAY:
-                // TODO map arrays: return map(value.asJsonArray());
-            case OBJECT:
-                // TODO map objects: return map(value.asJsonObject());
-                break;
-            case STRING:
-                return ((JsonString) value).getString();
-            case NUMBER:
-                return ((JsonNumber) value).numberValue();
-            case TRUE:
-                return true;
-            case FALSE:
-                return false;
-            case NULL:
-                return null;
-        }
-        throw new UnsupportedOperationException("unexpected json value type " + value.getValueType());
     }
 
     private class FederationServiceException extends FederationException {

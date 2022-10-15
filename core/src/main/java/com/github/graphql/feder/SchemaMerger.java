@@ -1,6 +1,7 @@
 package com.github.graphql.feder;
 
 import graphql.scalar.GraphqlIntCoercing;
+import graphql.scalar.GraphqlStringCoercing;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -21,11 +22,11 @@ import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.schema.SchemaTraverser;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import lombok.RequiredArgsConstructor;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -64,6 +65,9 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         out.additionalType(GraphQLScalarType.newScalar()
             .name("Int")
             .coercing(new GraphqlIntCoercing()).build());
+        out.additionalType(GraphQLScalarType.newScalar()
+            .name("ID")
+            .coercing(new GraphqlStringCoercing()).build());
 
         out.codeRegistry(codeRegistryBuilder.build());
 
@@ -113,7 +117,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     static class TypeBuilder {
         private final GraphQLObjectType.Builder type;
 
-        public TypeBuilder(@SuppressWarnings("CdiInjectionPointsInspection") GraphQLObjectType node) {
+        public TypeBuilder(GraphQLObjectType node) {
             this.type = GraphQLObjectType.newObject()
                 .name(node.getName())
                 .description(node.getDescription());
@@ -137,7 +141,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         private final TypeBuilder typeBuilder;
         private final Builder field;
 
-        FieldBuilder(@SuppressWarnings("CdiInjectionPointsInspection") GraphQLFieldDefinition node) {
+        FieldBuilder(GraphQLFieldDefinition node) {
             this.mergingSchema = currentlyMergingSchema;
             this.typeBuilder = currentTypeBuilder;
             this.field = GraphQLFieldDefinition.newFieldDefinition()
@@ -172,7 +176,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     private static class MergedDataFetcher implements DataFetcher<Object> {
         private final List<DataFetcher<?>> dataFetchers;
 
-        public MergedDataFetcher(@SuppressWarnings("CdiInjectionPointsInspection") DataFetcher<?>... dataFetchers) {
+        public MergedDataFetcher(DataFetcher<?>... dataFetchers) {
             this.dataFetchers = Stream.of(dataFetchers).flatMap(dataFetcher ->
                 (dataFetcher instanceof MergedDataFetcher)
                     ? ((MergedDataFetcher) dataFetcher).dataFetchers.stream()

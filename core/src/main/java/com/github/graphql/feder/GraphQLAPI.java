@@ -4,14 +4,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import javax.json.JsonObject;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import jakarta.json.JsonObject;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +30,7 @@ public interface GraphQLAPI {
     @GET
     @Produces(APPLICATION_GRAPHQL_JSON_TYPE)
     default GraphQLResponse request(@QueryParam("query") String query, JsonObject variables) {
+        // TODO verify that the query is not a mutation
         return request(GraphQLRequest.builder()
             .query(query)
             .variables(variables)
@@ -45,6 +46,7 @@ public interface GraphQLAPI {
     class GraphQLRequest {
         String query;
         JsonObject variables;
+        String operationName;
     }
 
     @Data @SuperBuilder @NoArgsConstructor

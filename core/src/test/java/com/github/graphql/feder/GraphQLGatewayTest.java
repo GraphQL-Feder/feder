@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import javax.json.Json;
-import javax.json.JsonObject;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import java.io.File;
 import java.io.StringReader;
 import java.net.URI;
@@ -188,7 +188,8 @@ class GraphQLGatewayTest {
 
 
     private void setup(FederatedGraphQLService... services) {
-        this.gateway = new GraphQLGateway(new SchemaMerger(List.of(services)).merge());
+        this.gateway = new GraphQLGateway();
+        this.gateway.schema = new SchemaMerger(List.of(services)).merge();
     }
 
     private FederatedGraphQLService prices() {
