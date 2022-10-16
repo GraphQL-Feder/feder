@@ -7,7 +7,7 @@ import org.eclipse.microprofile.graphql.Query;
 @GraphQLApi
 public class Prices {
     @Query
-    public @NonNull Product product(@NonNull String id) {
+    public Product product(@NonNull String id) {
         return Product.builder()
             .id(id)
             .price(Integer.parseInt(id) * 10000 + 299_99)

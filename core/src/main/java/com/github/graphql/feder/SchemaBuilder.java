@@ -126,7 +126,7 @@ class SchemaBuilder {
 
     private static void wireFederationDeclaration(Builder runtimeWiring) {
         runtimeWiring.scalar(GraphQLScalarType.newScalar().name("_Any").coercing(new GraphqlStringCoercing()).build());
-        runtimeWiring.scalar(GraphQLScalarType.newScalar().name("_FieldSet").coercing(new GraphqlStringCoercing()).build());
+        runtimeWiring.scalar(GraphQLScalarType.newScalar().name("_FieldSet").coercing(new FieldSetCoercing()).build());
         runtimeWiring.directive("key", new SchemaDirectiveWiring() {});
         runtimeWiring.type(TypeRuntimeWiring.newTypeWiring("_Entity").typeResolver(env -> null));
     }

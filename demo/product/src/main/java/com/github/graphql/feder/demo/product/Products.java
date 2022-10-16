@@ -7,7 +7,7 @@ import org.eclipse.microprofile.graphql.Query;
 @GraphQLApi
 public class Products {
     @Query
-    public @NonNull Product product(@NonNull String id) {
+    public Product product(@NonNull String id) {
         return Product.builder()
             .id(id)
             .name("Table")

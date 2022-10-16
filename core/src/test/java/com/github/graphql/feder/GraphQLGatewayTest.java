@@ -1,9 +1,10 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
-import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
-import com.github.t1.wunderbar.junit.consumer.Service;
-import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
+// import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
+// import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
+// import com.github.t1.wunderbar.junit.consumer.Service;
+// import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -17,17 +18,20 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static com.github.graphql.feder.GraphQLGatewayTest.RunMode.WITH_DIRECTIVES;
-import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
-import static com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer.NONE;
-import static com.github.t1.wunderbar.junit.consumer.WunderbarExpectationBuilder.given;
+// import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
+// import static com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer.NONE;
+// import static com.github.t1.wunderbar.junit.consumer.WunderbarExpectationBuilder.given;
 import static org.assertj.core.api.BDDAssertions.contentOf;
 import static org.assertj.core.api.BDDAssertions.then;
 
-@WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
+@Disabled("wunderbar still depends on the JEE8 package names `javax`")
+// @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
 class GraphQLGatewayTest {
 
-    @Service GraphQLAPI products;
-    @Service GraphQLAPI prices;
+    // @Service
+    GraphQLAPI products;
+    // @Service
+    GraphQLAPI prices;
     GraphQLGateway gateway;
 
     @SuppressWarnings("unused")
@@ -144,15 +148,15 @@ class GraphQLGatewayTest {
     }
 
     private static void givenSchema(GraphQLAPI service, String schema) {
-        given(service.request(GraphQLRequest.builder()
-            .query("{_service{sdl}}")
-            .build())
-        ).willReturn(GraphQLResponse.builder().data(parse(
-            "{\n" +
-            "    \"_service\": {\n" +
-            "        \"sdl\": \"" + escape(schema) + "\"\n" +
-            "    }\n" +
-            "}")).build());
+        // given(service.request(GraphQLRequest.builder()
+        //     .query("{_service{sdl}}")
+        //     .build())
+        // ).willReturn(GraphQLResponse.builder().data(parse(
+        //     "{\n" +
+        //     "    \"_service\": {\n" +
+        //     "        \"sdl\": \"" + escape(schema) + "\"\n" +
+        //     "    }\n" +
+        //     "}")).build());
     }
 
     private static String escape(String schema) {
@@ -162,24 +166,24 @@ class GraphQLGatewayTest {
     }
 
     private static void givenRepresentation(GraphQLAPI service, String fragment, String data) {
-        given(service.request(GraphQLRequest.builder()
-            .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
-            .variables(Json.createObjectBuilder()
-                .add("representations", Json.createObjectBuilder()
-                    .add("__typename", "Product")
-                    .add("id", "1")
-                    .build())
-                .build())
-            .build())
-        ).willReturn(GraphQLResponse.builder().data(parse(
-            "{\n" +
-            "    \"_entities\": [\n" +
-            "        {\n" +
-            data +
-            "        }\n" +
-            "    ]\n" +
-            "}"
-        )).build());
+        // given(service.request(GraphQLRequest.builder()
+        //     .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
+        //     .variables(Json.createObjectBuilder()
+        //         .add("representations", Json.createObjectBuilder()
+        //             .add("__typename", "Product")
+        //             .add("id", "1")
+        //             .build())
+        //         .build())
+        //     .build())
+        // ).willReturn(GraphQLResponse.builder().data(parse(
+        //     "{\n" +
+        //     "    \"_entities\": [\n" +
+        //     "        {\n" +
+        //     data +
+        //     "        }\n" +
+        //     "    ]\n" +
+        //     "}"
+        // )).build());
     }
 
     private static JsonObject parse(String json) {
