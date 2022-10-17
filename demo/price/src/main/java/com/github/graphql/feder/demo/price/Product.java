@@ -13,4 +13,5 @@ public class Product {
     @Id String id;
     @Description("The price in cent")
     int price;
+    Currency currency;
 }

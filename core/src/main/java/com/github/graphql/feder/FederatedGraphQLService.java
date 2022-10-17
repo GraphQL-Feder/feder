@@ -1,23 +1,15 @@
 package com.github.graphql.feder;
 
-import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
-import graphql.schema.SelectedField;
-import jakarta.json.Json;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
-import java.util.Set;
 
 import static com.github.graphql.feder.JsonMapper.map;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Holds a {@link GraphQLSchema} and fetches data from the Federation <code>_entities</code> query.
@@ -40,33 +32,17 @@ class FederatedGraphQLService implements DataFetcher<Object> {
 
     @Override
     public Object get(DataFetchingEnvironment env) {
-        var typename = ((GraphQLObjectType) env.getFieldType()).getName();
-        var availableFields = schema.getObjectType(typename)
-            .getFieldDefinitions().stream()
-            .map(GraphQLFieldDefinition::getName)
-            .collect(toList());
-        var selectedFields = env.getSelectionSet()
-            .getFields().stream()
-            .map(SelectedField::getName)
-            .filter(availableFields::contains)
-            .collect(toSet());
-        if (selectedFields.isEmpty() || selectedFields.equals(Set.of(idFieldName))) return new LinkedHashMap<>();
-        var fragment = typename + "{" + (selectedFields.contains("__typename") ? "" : "__typename ") + String.join(" ", selectedFields) + "}";
-        GraphQLRequest representationsRequest = GraphQLRequest.builder()
-            .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
-            .variables(Json.createObjectBuilder()
-                .add("representations", Json.createObjectBuilder()
-                    .add("__typename", typename)
-                    .add(idFieldName, env.getArgument(idFieldName).toString())
-                    .build())
-                .build())
-            .build();
+        var representations = new RepresentationsQuery(schema, idFieldName, env);
 
-        log.info("send request to {} at {}: {}", name, uri, representationsRequest);
-        var response = client.request(representationsRequest);
+        if (representations.getRequest() == null) {
+            return new LinkedHashMap<>();
+        }
+
+        log.info("send request to {} at {}: {}", name, uri, representations.getRequest());
+        var response = client.request(representations.getRequest());
         log.info("got response from {} at {}: {}", name, uri, response);
 
-        if (response == null) throw new FederationServiceException("selecting " + selectedFields + " => null response");
+        if (response == null) throw new FederationServiceException("selecting " + representations.getSelectedFieldNames() + " => null response");
         if (response.hasErrors()) throw new FederationServiceException(response.getErrors());
         if (response.getData() == null) throw new FederationServiceException("no data");
         var entities = response.getData().getJsonArray("_entities");
@@ -80,7 +56,7 @@ class FederatedGraphQLService implements DataFetcher<Object> {
         //| if (!selectedFields.contains("__typename")) out.remove("__typename");
         //| return out.build();
         var out = new LinkedHashMap<>();
-        selectedFields.forEach(fieldName -> out.put(fieldName, map(entity.getValue("/" + fieldName))));
+        representations.getSelectedFieldNames().forEach(fieldName -> out.put(fieldName, map(entity.getValue("/" + fieldName))));
         return out;
     }
 
