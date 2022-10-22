@@ -9,35 +9,34 @@ import graphql.schema.SelectedField;
 import jakarta.json.Json;
 import lombok.Getter;
 
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.joining;
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 class RepresentationsQuery {
     @Getter private final GraphQLRequest request;
-    @Getter private final Set<String> selectedFieldNames;
+    private final List<SelectedField> selectedFields;
 
     RepresentationsQuery(GraphQLSchema schema, String idFieldName, DataFetchingEnvironment env) {
         var typename = ((GraphQLObjectType) env.getFieldType()).getName();
         var availableFields = schema.getObjectType(typename)
             .getFieldDefinitions().stream()
             .map(GraphQLFieldDefinition::getName)
-            .collect(toList());
-        var selectedFields = env.getSelectionSet()
+            .toList();
+        this.selectedFields = env.getSelectionSet()
             .getFields().stream()
             .filter(selectedField -> availableFields.contains(selectedField.getName()))
-            .collect(toSet());
-        this.selectedFieldNames = selectedFields.stream().map(SelectedField::getName).collect(toSet());
-        if (selectedFieldNames.isEmpty() || selectedFieldNames.equals(Set.of(idFieldName))) {
+            .sorted(comparing(SelectedField::getName))
+            .collect(toList());
+        if (selectedFields.isEmpty() || selectedFields.size() == 1 && selectedFields.get(0).getName().equals(idFieldName)) {
             this.request = null;
             return;
         }
-        var fragment = typename + "{" + (selectedFieldNames.contains("__typename") ? "" : "__typename ") + toFragment(selectedFields) + "}";
         this.request = GraphQLRequest.builder()
-            .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
+            .query(new QueryBuilder(typename).with(selectedFields))
             .variables(Json.createObjectBuilder()
                 .add("representations", Json.createObjectBuilder()
                     .add("__typename", typename)
@@ -47,20 +46,46 @@ class RepresentationsQuery {
             .build();
     }
 
-    private String toFragment(Set<SelectedField> selectedFields) {
-        return selectedFields.stream().map(RepresentationsQuery::toFragment).collect(joining(" "));
+    public Set<String> getSelectedFieldNames() {
+        return fieldNames(selectedFields);
     }
 
-    private static String toFragment(SelectedField selectedField) {
-        var out = new StringBuilder(selectedField.getName());
-        var subFields = selectedField.getSelectionSet().getImmediateFields();
-        if (!subFields.isEmpty())
-            out.append(subFields.stream()
-                .map(SelectedField::getName)
-                .collect(Collectors.joining(" ", "{", "}")));
-        if (!selectedField.getArguments().isEmpty()) {
-            out.append("(").append("code").append(")");
+    private static Set<String> fieldNames(List<SelectedField> fields) {
+        return fields.stream().map(SelectedField::getName).collect(toSet());
+    }
+
+
+    private static class QueryBuilder {
+        private final StringBuilder out = new StringBuilder();
+
+        public QueryBuilder(String typename) {
+            out.append("query($representations:[_Any!]!){_entities(representations:$representations){...on ");
+            out.append(typename);
         }
-        return out.toString();
+
+        public String with(List<SelectedField> selectedFields) {
+            new FragmentBuilder(out).with(selectedFields);
+            out.append("}}");
+            return out.toString();
+        }
+    }
+
+    private record FragmentBuilder(StringBuilder out) {
+        private void with(List<SelectedField> selectedFields) {
+            out.append("{");
+            if (!fieldNames(selectedFields).contains("__typename"))
+                out.append("__typename ");
+            selectedFields.forEach(this::toFragment);
+            out.append("}");
+        }
+
+        private void toFragment(SelectedField selectedField) {
+            out.append(selectedField.getName());
+            var subFields = selectedField.getSelectionSet().getImmediateFields();
+            // TODO add arguments
+            if (!subFields.isEmpty())
+                new FragmentBuilder(out).with(subFields);
+            out.append(' ');
+        }
     }
 }

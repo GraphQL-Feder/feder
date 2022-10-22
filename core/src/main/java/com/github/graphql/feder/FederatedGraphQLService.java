@@ -4,6 +4,7 @@ import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLSchema;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
@@ -15,6 +16,7 @@ import static com.github.graphql.feder.JsonMapper.map;
  * Holds a {@link GraphQLSchema} and fetches data from the Federation <code>_entities</code> query.
  */
 @Slf4j
+@RequiredArgsConstructor
 class FederatedGraphQLService implements DataFetcher<Object> {
     private final String name; // TODO add a `@boundedContext` directive to all fields from this service
     @Getter private final GraphQLSchema schema;

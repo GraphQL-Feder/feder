@@ -1,9 +1,5 @@
 package com.github.graphql.feder;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
-
 import jakarta.json.JsonObject;
 import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
@@ -12,9 +8,14 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Generic JAX-RS API to execute arbitrary GraphQL requests.
@@ -47,6 +48,9 @@ public interface GraphQLAPI {
         String query;
         JsonObject variables;
         String operationName;
+
+        public Optional<JsonObject> variables() {return Optional.ofNullable(variables);}
+        public Optional<String> operationName() {return Optional.ofNullable(operationName);}
     }
 
     @Data @SuperBuilder @NoArgsConstructor
@@ -59,7 +63,7 @@ public interface GraphQLAPI {
             return (value == null) ? null : JSONB.fromJson(value.toString(), type);
         }
 
-        public boolean hasErrors() { return errors != null && !errors.isEmpty(); }
+        public boolean hasErrors() {return errors != null && !errors.isEmpty();}
     }
 
     @Data @SuperBuilder @NoArgsConstructor

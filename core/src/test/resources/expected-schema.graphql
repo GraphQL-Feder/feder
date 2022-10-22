@@ -15,7 +15,15 @@ type Product {
   description: String
   id: ID
   name: String
-  price: Int
+  price: Price
+}
+
+type Price {
+    "e.g. euros and cents. not all currency have exactly 2!"
+    parts: [Int]
+    currency: String
+    "human readable representation of the price"
+    tag: String
 }
 
 "Query root"

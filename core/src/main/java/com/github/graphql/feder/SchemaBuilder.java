@@ -134,27 +134,28 @@ class SchemaBuilder {
     private static final List<String> STANDARD_TYPES = List.of("Query", "Mutation", "Subscription");
 
     /** The static part of the federation declarations, i.e. without the <code>_Entity</code> union. */
-    private static final String FEDERATION_SCHEMA =
-        "scalar _Any\n" +
-        "scalar _FieldSet\n" +
-        "\n" +
-        "type _Service {\n" +
-        "  sdl: String\n" +
-        "}\n" +
-        "\n" +
-        "extend type Query {\n" +
-        "  _entities(representations: [_Any!]!): [_Entity]!\n" +
-        "  _service: _Service!\n" +
-        "}\n" +
-        "\n" +
-        "directive @external on FIELD_DEFINITION\n" +
-        "directive @requires(fields: _FieldSet!) on FIELD_DEFINITION\n" +
-        "directive @provides(fields: _FieldSet!) on FIELD_DEFINITION\n" +
-        "directive @key(fields: _FieldSet!) repeatable on OBJECT | INTERFACE\n" +
-        "\n" +
-        "# this is an optional directive discussed below\n" +
-        "directive @extends on OBJECT | INTERFACE\n" +
-        "\n";
+    private static final String FEDERATION_SCHEMA = """
+        scalar _Any
+        scalar _FieldSet
+
+        type _Service {
+          sdl: String
+        }
+
+        extend type Query {
+          _entities(representations: [_Any!]!): [_Entity]!
+          _service: _Service!
+        }
+
+        directive @external on FIELD_DEFINITION
+        directive @requires(fields: _FieldSet!) on FIELD_DEFINITION
+        directive @provides(fields: _FieldSet!) on FIELD_DEFINITION
+        directive @key(fields: _FieldSet!) repeatable on OBJECT | INTERFACE
+
+        # this is an optional directive discussed below
+        directive @extends on OBJECT | INTERFACE
+
+        """;
 
     private class SchemaFetchingException extends FederationException {
         public SchemaFetchingException(String message) {super(message + " while fetching sdl from " + uri);}

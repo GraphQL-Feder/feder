@@ -14,23 +14,15 @@ import static java.util.stream.Collectors.toList;
 
 class JsonMapper {
     static Object map(JsonValue value) {
-        switch (value.getValueType()) {
-            case ARRAY:
-                return map(value.asJsonArray());
-            case OBJECT:
-                return map(value.asJsonObject());
-            case STRING:
-                return ((JsonString) value).getString();
-            case NUMBER:
-                return ((JsonNumber) value).numberValue();
-            case TRUE:
-                return true;
-            case FALSE:
-                return false;
-            case NULL:
-                return null;
-        }
-        throw new UnsupportedOperationException("unexpected json value type " + value.getValueType());
+        return switch (value.getValueType()) {
+            case ARRAY -> map(value.asJsonArray());
+            case OBJECT -> map(value.asJsonObject());
+            case STRING -> ((JsonString) value).getString();
+            case NUMBER -> ((JsonNumber) value).numberValue();
+            case TRUE -> true;
+            case FALSE -> false;
+            case NULL -> null;
+        };
     }
 
     private static List<Object> map(JsonArray value) {

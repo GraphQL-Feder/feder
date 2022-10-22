@@ -24,9 +24,9 @@ public class GraphQLGateway implements GraphQLAPI {
     @Override public GraphQLResponse request(GraphQLRequest request) {
         var graphQL = GraphQL.newGraphQL(schema).build();
         var executionInput = ExecutionInput.newExecutionInput()
-            .query(request.getQuery())
-            .variables(JsonMapper.map(request.getVariables()))
-            .operationName(request.getOperationName());
+            .query(request.getQuery());
+        request.variables().map(JsonMapper::map).ifPresent(executionInput::variables);
+        request.operationName().ifPresent(executionInput::operationName);
         ExecutionResult executionResult = graphQL.execute(executionInput);
 
         return GraphQLResponse.builder()
