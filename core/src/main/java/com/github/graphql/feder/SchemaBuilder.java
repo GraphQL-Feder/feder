@@ -40,16 +40,16 @@ class SchemaBuilder {
 
     final String name;
     final URI uri;
-    final GraphQLAPI client;
+    final GraphQLAPI graphQLAPI;
 
     SchemaBuilder(String name, URI uri) {
         this(name, uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
     }
 
-    SchemaBuilder(String name, URI uri, GraphQLAPI client) {
+    SchemaBuilder(String name, URI uri, GraphQLAPI graphQLAPI) {
         this.name = name;
         this.uri = uri;
-        this.client = client;
+        this.graphQLAPI = graphQLAPI;
     }
 
     GraphQLSchema build(DataFetcher<?> representationFetcher) {
@@ -90,7 +90,7 @@ class SchemaBuilder {
         try {
             GraphQLRequest request = GraphQLRequest.builder().query("{_service{sdl}}").build();
             var t0 = System.currentTimeMillis();
-            var response = client.request(request);
+            var response = graphQLAPI.request(request);
             var t1 = System.currentTimeMillis();
             if (response == null) throw new SchemaFetchingException("null response");
             if (response.hasErrors()) throw new FederationException("errors from service " + uri + ": " + response.getErrors());

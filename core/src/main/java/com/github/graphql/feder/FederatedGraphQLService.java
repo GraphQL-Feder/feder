@@ -21,13 +21,13 @@ class FederatedGraphQLService implements DataFetcher<Object> {
     private final String name; // TODO add a `@boundedContext` directive to all fields from this service
     @Getter private final GraphQLSchema schema;
     private final URI uri;
-    private final GraphQLAPI client;
+    private final GraphQLAPI graphQLAPI;
     private final String idFieldName;
 
     FederatedGraphQLService(SchemaBuilder schemaBuilder) {
         this.name = schemaBuilder.name;
         this.uri = schemaBuilder.uri;
-        this.client = schemaBuilder.client;
+        this.graphQLAPI = schemaBuilder.graphQLAPI;
         this.schema = schemaBuilder.build(this);
         this.idFieldName = "id"; // TODO derive from @key
     }
@@ -41,7 +41,7 @@ class FederatedGraphQLService implements DataFetcher<Object> {
         }
 
         log.info("send request to {} at {}: {}", name, uri, representations.getRequest());
-        var response = client.request(representations.getRequest());
+        var response = graphQLAPI.request(representations.getRequest());
         log.info("got response from {} at {}: {}", name, uri, response);
 
         if (response == null) throw new FederationServiceException("selecting " + representations.getSelectedFieldNames() + " => null response");
