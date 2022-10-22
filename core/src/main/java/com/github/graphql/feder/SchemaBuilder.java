@@ -6,7 +6,6 @@ import graphql.language.NamedNode;
 import graphql.language.Node;
 import graphql.language.TypeDefinition;
 import graphql.language.TypeName;
-import graphql.scalar.GraphqlIntCoercing;
 import graphql.scalar.GraphqlStringCoercing;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLScalarType;
@@ -26,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static graphql.Scalars.GraphQLInt;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -57,12 +57,9 @@ class SchemaBuilder {
 
         var runtimeWiring = RuntimeWiring.newRuntimeWiring();
         // TODO why do we need these and what other types are missing?
-        runtimeWiring.scalar(GraphQLScalarType.newScalar()
-            .name("BigDecimal")
-            .coercing(new GraphqlIntCoercing()).build());
-        runtimeWiring.scalar(GraphQLScalarType.newScalar()
-            .name("BigInteger")
-            .coercing(new GraphqlIntCoercing()).build());
+        runtimeWiring.scalar(GraphQLInt.transform(builder -> builder.name("BigDecimal")));
+        runtimeWiring.scalar(GraphQLInt.transform(builder -> builder.name("BigInteger")));
+
         @SuppressWarnings("unchecked")
         var queries = (List<FieldDefinition>) typeDefinitionRegistry.getType("Query").orElseThrow().getChildren();
         queries.forEach(query ->

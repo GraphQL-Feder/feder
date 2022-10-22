@@ -1,15 +1,21 @@
 package com.github.graphql.feder;
 
+import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static java.util.stream.Collectors.toList;
 
 class JsonMapper {
@@ -36,5 +42,21 @@ class JsonMapper {
         Map<String, Object> map = new LinkedHashMap<>();
         value.keySet().forEach(key -> map.put(key, JsonMapper.map(value.get(key))));
         return map;
+    }
+
+    public static JsonValue toJson(Object value) {
+        if (value == null) return JsonValue.NULL;
+        if (value == TRUE) return JsonValue.TRUE;
+        if (value == FALSE) return JsonValue.FALSE;
+        if (value instanceof String s) return Json.createValue(s);
+        if (value instanceof Integer i) return Json.createValue(i);
+        if (value instanceof Long l) return Json.createValue(l);
+        if (value instanceof Double d) return Json.createValue(d);
+        if (value instanceof BigInteger i) return Json.createValue(i);
+        if (value instanceof BigDecimal d) return Json.createValue(d);
+        if (value instanceof Collection<?> c) return Json.createArrayBuilder(c).build(); // is this correct?
+        if (value instanceof Map<?, ?> m) //noinspection unchecked
+            return Json.createObjectBuilder((Map<String, Object>) m).build(); // is this correct?
+        throw new IllegalArgumentException("can't map to json");
     }
 }

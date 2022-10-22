@@ -22,19 +22,20 @@ public class Prices {
             .build();
     }
 
-    public String displayName(@Source Currency currency, String languageTag) {
-        var locale = (languageTag == null) ? Locale.ROOT : Locale.forLanguageTag(languageTag);
-        return currency.getDisplayName(locale);
+    public String displayName(@Source Currency currency, String locale) {
+        return currency.getDisplayName(parse(locale));
     }
 
-    public String symbol(@Source Currency currency, String languageTag) {
-        var locale = (languageTag == null) ? Locale.ROOT : Locale.forLanguageTag(languageTag);
-        return currency.getSymbol(locale);
+    public String symbol(@Source Currency currency, String locale) {
+        return currency.getSymbol(parse(locale));
     }
 
     @Description("human readable representation of the price")
-    public String tag(@Source Price price, String languageTag) {
-        var locale = (languageTag == null) ? Locale.ROOT : Locale.forLanguageTag(languageTag);
-        return price.getTag(locale);
+    public String tag(@Source Price price, String locale) {
+        return price.getTag(parse(locale));
+    }
+
+    private static Locale parse(String locale) {
+        return (locale == null) ? Locale.ROOT : Locale.forLanguageTag(locale);
     }
 }

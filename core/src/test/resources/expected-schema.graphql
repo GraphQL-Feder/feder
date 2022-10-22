@@ -23,7 +23,7 @@ type Price {
     parts: [Int]
     currency: String
     "human readable representation of the price"
-    tag: String
+    tag(locale: String): String
 }
 
 "Query root"

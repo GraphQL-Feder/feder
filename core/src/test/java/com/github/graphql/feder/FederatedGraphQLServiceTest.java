@@ -15,8 +15,10 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import static com.github.graphql.feder.JsonMapper.map;
 import static graphql.ExecutionInput.newExecutionInput;
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
+import static org.assertj.core.api.BDDAssertions.entry;
 import static org.assertj.core.api.BDDAssertions.then;
 
 class FederatedGraphQLServiceTest {
@@ -25,8 +27,13 @@ class FederatedGraphQLServiceTest {
         var client = new GraphQLAPI() {
             @Override public GraphQLResponse request(GraphQLRequest request) {
                 then(request.query).isEqualTo(
-                    "query($representations:[_Any!]!){_entities(representations:$representations)" +
-                    "{...on Product{__typename description id name price{__typename tag } }}}");
+                    "query( $representations:[_Any!]! $locale:String) {_entities(representations:$representations)" +
+                    "{...on Product{__typename description id name price{__typename tag(locale:$locale) } }}}");
+                then(map(request.variables)).containsOnly(
+                    entry("representations", Map.of(
+                        "__typename", "Product",
+                        "id", "1")),
+                    entry("locale", "es-MX"));
                 return GraphQLResponse.builder()
                     .data(Json.createReader(new StringReader("""
                         {"_entities": [
@@ -36,7 +43,7 @@ class FederatedGraphQLServiceTest {
                                 "id": "1",
                                 "name": "Table",
                                 "price": {
-                                    "tag": "12.34€"
+                                    "tag": "12.34EUR"
                                 }
                             }
                         ]}
@@ -59,7 +66,7 @@ class FederatedGraphQLServiceTest {
                 query product($id: ID) {
                   product(id:$id) {
                     id name description price {
-                      tag
+                      tag(locale: "es-MX")
                     }
                   }
                 }
@@ -73,7 +80,7 @@ class FederatedGraphQLServiceTest {
                 "id", "1",
                 "name", "Table",
                 "description", "A nice table with four legs",
-                "price", Map.of("tag", "12.34€"))));
+                "price", Map.of("tag", "12.34EUR"))));
     }
 
     @Test

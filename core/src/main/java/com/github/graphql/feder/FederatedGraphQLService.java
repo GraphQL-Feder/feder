@@ -34,7 +34,7 @@ class FederatedGraphQLService implements DataFetcher<Object> {
 
     @Override
     public Object get(DataFetchingEnvironment env) {
-        var representations = new RepresentationsQuery(schema, idFieldName, env);
+        var representations = new EntitiesRequest(schema, idFieldName, env);
 
         if (representations.getRequest() == null) {
             return new LinkedHashMap<>();

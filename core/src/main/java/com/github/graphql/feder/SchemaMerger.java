@@ -1,7 +1,5 @@
 package com.github.graphql.feder;
 
-import graphql.scalar.GraphqlIntCoercing;
-import graphql.scalar.GraphqlStringCoercing;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
@@ -13,7 +11,6 @@ import graphql.schema.GraphQLModifiedType;
 import graphql.schema.GraphQLNamedSchemaElement;
 import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
@@ -33,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static graphql.Scalars.GraphQLID;
+import static graphql.Scalars.GraphQLInt;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -69,12 +68,8 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         closeBuilders();
 
         // TODO why do we need these and what other types are missing?
-        out.additionalType(GraphQLScalarType.newScalar()
-            .name("Int")
-            .coercing(new GraphqlIntCoercing()).build());
-        out.additionalType(GraphQLScalarType.newScalar()
-            .name("ID")
-            .coercing(new GraphqlStringCoercing()).build());
+        out.additionalType(GraphQLInt);
+        out.additionalType(GraphQLID);
 
         out.codeRegistry(codeRegistryBuilder.build());
 
