@@ -50,6 +50,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     private final GraphQLSchema.Builder out = GraphQLSchema.newSchema()
         .clearDirectives()
         .clearSchemaDirectives();
+    private GraphQLSchema schema;
 
     private GraphQLSchema currentlyMergingSchema;
     private TypeBuilder currentTypeBuilder;
@@ -57,6 +58,12 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
     @Produces
     GraphQLSchema merge() {
+        if (schema == null)
+            schema = build();
+        return schema;
+    }
+
+    private GraphQLSchema build() {
         services.forEach(this::merge);
 
         closeBuilders();
