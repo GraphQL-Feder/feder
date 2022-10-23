@@ -14,9 +14,5 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: 17
-    - uses: actions/cache@v1
-      with:
-        path: ~/.m2/repository
-        key: maven-${{ hashFiles('**/*pom.xml') }}
-
+        cache: 'maven'
     - run: mvn --batch-mode --show-version --no-transfer-progress install
