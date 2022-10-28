@@ -8,19 +8,20 @@ import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.SelectedField;
-import jakarta.json.Json;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
+@Slf4j
 class EntitiesRequest {
     @Getter private final GraphQLRequest request;
     private final List<SelectedField> selectedFields;
@@ -60,19 +61,22 @@ class EntitiesRequest {
         private final String typename;
         private final StringBuilder prequel = new StringBuilder("query(");
         private final StringBuilder body = new StringBuilder(") {_entities(representations:$representations){...on ");
-        private final JsonObjectBuilder variables = Json.createObjectBuilder();
+        private final Map<String, Object> variables = new LinkedHashMap<>();
 
         public RequestBuilder withRepresentations(String idFieldName, String value) {
-            withVariable("representations", "[_Any!]!", Json.createObjectBuilder()
-                .add("__typename", typename)
-                .add(idFieldName, value)
-                .build());
+            withVariable("representations", "[_Any!]!",Map.of(
+                "__typename", typename,
+                idFieldName, value));
             return this;
         }
 
-        public void withVariable(String variableName, String variableType, JsonValue jsonValue) {
-            prequel.append(" $").append(variableName).append(":").append(variableType);
-            variables.add(variableName, jsonValue);
+        public void withVariable(String variableName, String variableType, Object variableValue) {
+            if (variables.containsKey(variableName)) {
+                log.debug("duplicate variable name: {}:{}", variableName, variableType);
+            } else {
+                prequel.append(" $").append(variableName).append(":").append(variableType);
+                variables.put(variableName, variableValue);
+            }
         }
 
         public void withFields(List<SelectedField> selectedFields) {
@@ -84,7 +88,7 @@ class EntitiesRequest {
         public GraphQLRequest build() {
             return GraphQLRequest.builder()
                 .query(prequel.toString() + body)
-                .variables(variables.build())
+                .variables(JsonMapper.toJson(variables))
                 .build();
         }
 
@@ -117,7 +121,7 @@ class EntitiesRequest {
             private void addVariable(GraphQLAppliedDirectiveArgument argument, Object value) {
                 var name = argument.getName();
                 var variableType = ((GraphQLNamedType) argument.getType()).getName();
-                RequestBuilder.this.withVariable(name, variableType, JsonMapper.toJson(value));
+                withVariable(name, variableType, value);
                 body.append(name).append(":$").append(name);
             }
         }

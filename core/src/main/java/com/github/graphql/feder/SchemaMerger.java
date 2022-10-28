@@ -6,11 +6,13 @@ import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLCodeRegistry;
 import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLFieldDefinition.Builder;
+import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLModifiedType;
 import graphql.schema.GraphQLNamedSchemaElement;
 import graphql.schema.GraphQLNamedType;
+import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
@@ -19,11 +21,11 @@ import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.schema.SchemaTraverser;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
+import lombok.RequiredArgsConstructor;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
-import lombok.RequiredArgsConstructor;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -105,14 +107,18 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
         return super.visitGraphQLArgument(node, context);
     }
 
-    private static boolean hasStandardNodeName(GraphQLNamedSchemaElement node) {return !node.getName().startsWith("_");}
+    private static boolean hasStandardNodeName(GraphQLNamedSchemaElement node) {
+        return !node.getName().startsWith("_");
+    }
 
     private void closeBuilders() {
         fieldBuilders.forEach(FieldBuilder::build);
         typeBuilders.values().forEach(typeBuilder -> {
             var type = typeBuilder.build();
-            if (type.getName().equals("Query")) out.query(type);
-            else out.additionalType(type);
+            if (type.getName().equals("Query"))
+                out.query(type);
+            else
+                out.additionalType(type);
         });
     }
 
@@ -141,20 +147,28 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     class FieldBuilder {
         private final GraphQLSchema mergingSchema;
         private final TypeBuilder typeBuilder;
-        private final Builder field;
+        private final GraphQLFieldDefinition.Builder field;
 
         FieldBuilder(GraphQLFieldDefinition node) {
             this.mergingSchema = currentlyMergingSchema;
             this.typeBuilder = currentTypeBuilder;
             this.field = GraphQLFieldDefinition.newFieldDefinition()
                 .name(node.getName())
-                .type(ref(node.getType()));
+                .type(out(node.getType()));
         }
 
-        private GraphQLTypeReference ref(GraphQLType type) {
-            while (type instanceof GraphQLModifiedType)
-                type = ((GraphQLModifiedType) type).getWrappedType();
+        private GraphQLOutputType out(GraphQLType type) {
+            // GraphQLList and GraphQLNonNull are the only classes implementing GraphQLModifiedType,
+            // and we have to restore them around the nested output type we want to return
+            if (type instanceof GraphQLList)
+                return GraphQLList.list(out(unwrap(type)));
+            if (type instanceof GraphQLNonNull)
+                return GraphQLNonNull.nonNull(out(unwrap(type)));
             return GraphQLTypeReference.typeRef(((GraphQLNamedType) type).getName());
+        }
+
+        private GraphQLType unwrap(GraphQLType type) {
+            return ((GraphQLModifiedType) type).getWrappedType();
         }
 
         public void argument(GraphQLArgument node) {
@@ -190,8 +204,10 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
             for (var dataFetcher : dataFetchers) {
                 @SuppressWarnings("unchecked")
                 var value = (Map<String, Object>) dataFetcher.get(environment);
-                if (out == null) out = value;
-                else out.putAll(value);
+                if (out == null)
+                    out = value;
+                else
+                    out.putAll(value);
             }
             return out;
         }

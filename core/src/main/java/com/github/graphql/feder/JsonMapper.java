@@ -6,7 +6,6 @@ import jakarta.json.JsonNumber;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonString;
 import jakarta.json.JsonValue;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -54,9 +53,21 @@ class JsonMapper {
         if (value instanceof Double d) return Json.createValue(d);
         if (value instanceof BigInteger i) return Json.createValue(i);
         if (value instanceof BigDecimal d) return Json.createValue(d);
-        if (value instanceof Collection<?> c) return Json.createArrayBuilder(c).build(); // is this correct?
+        if (value instanceof Collection<?> c) return toJson(c);
         if (value instanceof Map<?, ?> m) //noinspection unchecked
-            return Json.createObjectBuilder((Map<String, Object>) m).build(); // is this correct?
+            return toJson((Map<String, Object>) m);
         throw new IllegalArgumentException("can't map to json");
+    }
+
+    public static JsonObject toJson(Map<String, Object> m) {
+        var out = Json.createObjectBuilder();
+        m.forEach((key, value) -> out.add(key, toJson(value)));
+        return out.build();
+    }
+
+    public static JsonArray toJson(Collection<?> c) {
+        var out = Json.createArrayBuilder();
+        c.stream().map(JsonMapper::toJson).forEach(out::add);
+        return out.build();
     }
 }
