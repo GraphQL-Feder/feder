@@ -108,6 +108,7 @@ class EntitiesRequest {
                     var fieldDefinition = selectedField.getFieldDefinitions().stream().filter(def -> def.getName().equals(selectedField.getName())).findFirst().orElseThrow();
                     for (var name : selectedField.getArguments().keySet()) {
                         var argument = fieldDefinition.getArgument(name);
+                        // TODO the value can be from the variables or a literal
                         addVariable(argument.toAppliedArgument(), selectedField.getArguments().get(name));
                     }
                     body.append(")");
