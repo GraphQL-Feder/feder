@@ -20,7 +20,7 @@ class ServiceProducer {
     @Produces
     List<FederatedGraphQLService> services() {
         return serviceUris.entrySet().stream()
-            .map(SchemaBuilder::of)
+            .map(FederatedSchemaBuilder::of)
             .map(FederatedGraphQLService::new)
             .collect(toList());
     }

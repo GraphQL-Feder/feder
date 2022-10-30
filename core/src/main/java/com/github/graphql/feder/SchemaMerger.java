@@ -125,7 +125,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     static class TypeBuilder {
         private final GraphQLObjectType.Builder type;
 
-        public TypeBuilder(GraphQLObjectType node) {
+        TypeBuilder(GraphQLObjectType node) {
             this.type = GraphQLObjectType.newObject()
                 .name(node.getName())
                 .description(node.getDescription());
@@ -192,7 +192,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     private static class MergedDataFetcher implements DataFetcher<Object> {
         private final List<DataFetcher<?>> dataFetchers;
 
-        public MergedDataFetcher(DataFetcher<?>... dataFetchers) {
+        private MergedDataFetcher(DataFetcher<?>... dataFetchers) {
             this.dataFetchers = Stream.of(dataFetchers).flatMap(dataFetcher ->
                 (dataFetcher instanceof MergedDataFetcher)
                     ? ((MergedDataFetcher) dataFetcher).dataFetchers.stream()

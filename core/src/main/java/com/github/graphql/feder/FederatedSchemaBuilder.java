@@ -33,20 +33,20 @@ import static java.util.stream.Collectors.toSet;
  * the Federation declarations.
  */
 @Slf4j
-class SchemaBuilder {
-    static SchemaBuilder of(Map.Entry<String, URI> entry) {
-        return new SchemaBuilder(entry.getKey(), entry.getValue());
+class FederatedSchemaBuilder {
+    static FederatedSchemaBuilder of(Map.Entry<String, URI> entry) {
+        return new FederatedSchemaBuilder(entry.getKey(), entry.getValue());
     }
 
     final String name;
     final URI uri;
     final GraphQLAPI graphQLAPI;
 
-    SchemaBuilder(String name, URI uri) {
+    FederatedSchemaBuilder(String name, URI uri) {
         this(name, uri, RestClientBuilder.newBuilder().baseUri(uri).build(GraphQLAPI.class));
     }
 
-    SchemaBuilder(String name, URI uri, GraphQLAPI graphQLAPI) {
+    FederatedSchemaBuilder(String name, URI uri, GraphQLAPI graphQLAPI) {
         this.name = name;
         this.uri = uri;
         this.graphQLAPI = graphQLAPI;
@@ -155,6 +155,6 @@ class SchemaBuilder {
         """;
 
     private class SchemaFetchingException extends FederationException {
-        public SchemaFetchingException(String message) {super(message + " while fetching sdl from " + uri);}
+        private SchemaFetchingException(String message) {super(message + " while fetching sdl from " + uri);}
     }
 }

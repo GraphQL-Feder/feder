@@ -27,7 +27,7 @@ class FederatedGraphQLServiceTest {
         var client = new GraphQLAPI() {
             @Override public GraphQLResponse request(GraphQLRequest request) {
                 then(request.query).isEqualTo(
-                    "query( $representations:[_Any!]! $locale:String) {_entities(representations:$representations)" +
+                    "query($representations:[_Any!]! $locale:String) {_entities(representations:$representations)" +
                     "{...on Product{__typename description id name price{__typename tag(locale:$locale) } }}}");
                 then(map(request.variables)).containsOnly(
                     entry("representations", Map.of(

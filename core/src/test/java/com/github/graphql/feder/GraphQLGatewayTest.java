@@ -4,13 +4,14 @@ package com.github.graphql.feder;
 // import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
 // import com.github.t1.wunderbar.junit.consumer.Service;
 // import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
+
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
 import java.io.File;
 import java.io.StringReader;
 import java.net.URI;
@@ -18,14 +19,11 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static com.github.graphql.feder.GraphQLGatewayTest.RunMode.WITH_DIRECTIVES;
-// import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
-// import static com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer.NONE;
-// import static com.github.t1.wunderbar.junit.consumer.WunderbarExpectationBuilder.given;
 import static org.assertj.core.api.BDDAssertions.contentOf;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Disabled("wunderbar still depends on the JEE8 package names `javax`")
-// @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
+    // @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
 class GraphQLGatewayTest {
 
     // @Service
@@ -121,13 +119,15 @@ class GraphQLGatewayTest {
             "type Query {\n" +
             "  product(id: ID): Product\n" +
             "}\n");
-        givenRepresentation(products, "Product{__typename name id}",
-            "\"__typename\": \"Product\", \n" +
-            "\"id\": \"1\",\n" +
-            "\"name\": \"Table\"\n");
-        givenRepresentation(products, "Product{__typename name}",
-            "\"__typename\": \"Product\", \n" +
-            "\"name\": \"Table\"\n");
+        givenRepresentation(products, "Product{__typename name id}", """
+            "__typename": "Product",
+            "id": "1",
+            "name": "Table"
+            """);
+        givenRepresentation(products, "Product{__typename name}", """
+            "__typename": "Product",
+            "name": "Table"
+            """);
     }
 
     private void setupPrices(RunMode runMode) {
@@ -142,9 +142,10 @@ class GraphQLGatewayTest {
             "type Query {\n" +
             "  product(id: ID): Product\n" +
             "}\n");
-        givenRepresentation(prices, "Product{__typename price}",
-            "\"__typename\": \"Product\", \n" +
-            "\"price\": 39999\n");
+        givenRepresentation(prices, "Product{__typename price}", """
+                "__typename": "Product",
+                "price": 39999
+                """);
     }
 
     private static void givenSchema(GraphQLAPI service, String schema) {
@@ -205,6 +206,6 @@ class GraphQLGatewayTest {
     }
 
     private FederatedGraphQLService service(String name, String uri, GraphQLAPI api) {
-        return new FederatedGraphQLService(new SchemaBuilder(name, URI.create(uri), api));
+        return new FederatedGraphQLService(new FederatedSchemaBuilder(name, URI.create(uri), api));
     }
 }

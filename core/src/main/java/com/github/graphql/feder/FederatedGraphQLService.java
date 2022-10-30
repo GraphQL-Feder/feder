@@ -2,6 +2,7 @@ package com.github.graphql.feder;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -24,18 +25,18 @@ class FederatedGraphQLService implements DataFetcher<Object> {
     private final GraphQLAPI graphQLAPI;
     private final String idFieldName;
 
-    FederatedGraphQLService(SchemaBuilder schemaBuilder) {
+    FederatedGraphQLService(FederatedSchemaBuilder federatedSchemaBuilder) {
         // we can't use the RequiredArgsConstructor, as we need to pass `this` to the schemaBuilder
-        this.name = schemaBuilder.name;
-        this.uri = schemaBuilder.uri;
-        this.graphQLAPI = schemaBuilder.graphQLAPI;
-        this.schema = schemaBuilder.build(this);
-        this.idFieldName = "id"; // TODO derive from @key
+        this.name = federatedSchemaBuilder.name;
+        this.uri = federatedSchemaBuilder.uri;
+        this.graphQLAPI = federatedSchemaBuilder.graphQLAPI;
+        this.schema = federatedSchemaBuilder.build(this);
+        this.idFieldName = "id"; // TODO derive from @key ... could be more than one
     }
 
     @Override
     public Object get(DataFetchingEnvironment env) {
-        var entitiesRequest = new EntitiesRequest(schema, idFieldName, env);
+        var entitiesRequest = new EntitiesRequest((GraphQLObjectType) env.getFieldType(), idFieldName, env.getArgument(idFieldName), env.getSelectionSet());
 
         if (entitiesRequest.getRequest() == null) {
             return new LinkedHashMap<>();
@@ -45,7 +46,7 @@ class FederatedGraphQLService implements DataFetcher<Object> {
         var response = graphQLAPI.request(entitiesRequest.getRequest());
         log.info("got response from {} at {}: {}", name, uri, response);
 
-        if (response == null) throw new FederationServiceException("selecting " + entitiesRequest.getSelectedFieldNames() + " => null response");
+        if (response == null) throw new FederationServiceException("selecting " + entitiesRequest.selectedFieldNames() + " => null response");
         if (response.hasErrors()) throw new FederationServiceException(response.getErrors());
         if (response.getData() == null) throw new FederationServiceException("no data");
         var entitiesResponse = response.getData().getJsonArray("_entities");
@@ -59,11 +60,11 @@ class FederatedGraphQLService implements DataFetcher<Object> {
         //| if (!selectedFields.contains("__typename")) out.remove("__typename");
         //| return out.build();
         var out = new LinkedHashMap<>();
-        entitiesRequest.getSelectedFieldNames().forEach(fieldName -> out.put(fieldName, map(entity.getValue("/" + fieldName))));
+        entitiesRequest.selectedFieldNames().forEach(fieldName -> out.put(fieldName, map(entity.getValue("/" + fieldName))));
         return out;
     }
 
     private class FederationServiceException extends FederationException {
-        public FederationServiceException(Object message) {super("[from service " + name + " at " + uri + "]: " + message);}
+        private FederationServiceException(Object message) {super("[from service " + name + " at " + uri + "]: " + message);}
     }
 }

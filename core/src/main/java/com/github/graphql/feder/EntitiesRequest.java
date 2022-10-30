@@ -1,13 +1,14 @@
 package com.github.graphql.feder;
 
 import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
-import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingFieldSelectionSet;
 import graphql.schema.GraphQLAppliedDirectiveArgument;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLSchema;
 import graphql.schema.SelectedField;
+import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import static com.github.graphql.feder.JsonMapper.toJson;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -26,28 +29,35 @@ class EntitiesRequest {
     @Getter private final GraphQLRequest request;
     private final List<SelectedField> selectedFields;
 
-    EntitiesRequest(GraphQLSchema schema, String idFieldName, DataFetchingEnvironment env) {
-        var typename = ((GraphQLObjectType) env.getFieldType()).getName();
-        var availableFields = schema.getObjectType(typename)
-            .getFieldDefinitions().stream()
+    EntitiesRequest(GraphQLObjectType objectType, String idFieldName, String idValue, DataFetchingFieldSelectionSet selectionSet) {
+        var availableFields = availableFieldNames(objectType);
+        this.selectedFields = selectedFields(availableFields, selectionSet);
+        this.request = (selectedFields.isEmpty() || selectedOnly(idFieldName))
+            ? null
+            : new RequestBuilder(objectType)
+            .withRepresentations(idFieldName, idValue)
+            .withFields(selectedFields)
+            .build();
+    }
+
+    private static List<String> availableFieldNames(GraphQLObjectType type) {
+        return type.getFieldDefinitions().stream()
             .map(GraphQLFieldDefinition::getName)
             .toList();
-        this.selectedFields = env.getSelectionSet()
-            .getFields().stream()
+    }
+
+    private List<SelectedField> selectedFields(List<String> availableFields, DataFetchingFieldSelectionSet selectionSet) {
+        return selectionSet.getFields().stream()
             .filter(selectedField -> availableFields.contains(selectedField.getName()))
             .sorted(comparing(SelectedField::getName))
             .collect(toList());
-        if (selectedFields.isEmpty() || selectedFields.size() == 1 && selectedFields.get(0).getName().equals(idFieldName)) {
-            this.request = null;
-            return;
-        }
-        var requestBuilder = new RequestBuilder(typename)
-            .withRepresentations(idFieldName, env.getArgument(idFieldName));
-        requestBuilder.withFields(selectedFields);
-        this.request = requestBuilder.build();
     }
 
-    public Set<String> getSelectedFieldNames() {
+    private boolean selectedOnly(String idFieldName) {
+        return selectedFields.size() == 1 && selectedFields.get(0).getName().equals(idFieldName);
+    }
+
+    Set<String> selectedFieldNames() {
         return fieldNames(selectedFields);
     }
 
@@ -58,72 +68,110 @@ class EntitiesRequest {
 
     @RequiredArgsConstructor
     private static class RequestBuilder {
-        private final String typename;
-        private final StringBuilder prequel = new StringBuilder("query(");
-        private final StringBuilder body = new StringBuilder(") {_entities(representations:$representations){...on ");
-        private final Map<String, Object> variables = new LinkedHashMap<>();
+        private final GraphQLObjectType objectType;
+        private final Fragment fragment = new Fragment();
+        private final Variables variables = new Variables();
 
-        public RequestBuilder withRepresentations(String idFieldName, String value) {
-            withVariable("representations", "[_Any!]!",Map.of(
-                "__typename", typename,
+        RequestBuilder withRepresentations(String idFieldName, String value) {
+            addVariable("representations", "[_Any!]!", Map.of(
+                "__typename", objectType.getName(),
                 idFieldName, value));
             return this;
         }
 
-        public void withVariable(String variableName, String variableType, Object variableValue) {
-            if (variables.containsKey(variableName)) {
-                log.debug("duplicate variable name: {}:{}", variableName, variableType);
-            } else {
-                prequel.append(" $").append(variableName).append(":").append(variableType);
-                variables.put(variableName, variableValue);
-            }
+        void addVariable(String variableName, String variableType, Object variableValue) {
+            variables.add(variableName, variableType, variableValue);
         }
 
-        public void withFields(List<SelectedField> selectedFields) {
-            body.append(typename);
-            new FragmentBuilder().with(selectedFields);
-            body.append("}}");
+        RequestBuilder withFields(List<SelectedField> selectedFields) {
+            fragment.with(selectedFields);
+            return this;
         }
 
-        public GraphQLRequest build() {
+        GraphQLRequest build() {
             return GraphQLRequest.builder()
-                .query(prequel.toString() + body)
-                .variables(JsonMapper.toJson(variables))
+                .query(query())
+                .variables(variables.valueMap())
                 .build();
         }
 
-        private class FragmentBuilder {
-            private void with(List<SelectedField> selectedFields) {
-                body.append("{");
-                if (!fieldNames(selectedFields).contains("__typename"))
-                    body.append("__typename ");
-                selectedFields.forEach(this::toFragment);
-                body.append("}");
+        private String query() {
+            return "query(" + variables.declaration() + ") " +
+                   "{_entities(representations:$representations){...on " + objectType.getName() + fragment + "}}";
+        }
+
+
+        private static class Variables {
+            private final Map<String, Variable> variables = new LinkedHashMap<>();
+
+            void add(String variableName, String variableType, Object variableValue) {
+                if (variables.containsKey(variableName)) {
+                    log.debug("duplicate variable name: {}:{}", variableName, variableType);
+                } else {
+                    variables.put(variableName, new Variable(variableType, variableValue));
+                }
             }
 
-            private void toFragment(SelectedField selectedField) {
-                body.append(selectedField.getName());
+            String declaration() {
+                return variables.entrySet().stream()
+                    .map(entry -> "$" + entry.getKey() + ":" + entry.getValue().type)
+                    .collect(Collectors.joining(" "));
+            }
+
+            JsonObject valueMap() {
+                var out = Json.createObjectBuilder();
+                variables.forEach((name, variable) -> out.add(name, toJson(variable.value)));
+                return out.build();
+            }
+
+            private record Variable(String type, Object value) {}
+        }
+
+        private class Fragment {
+            private final StringBuilder fragment = new StringBuilder();
+
+            @Override public String toString() {return fragment.toString();}
+
+            private Fragment with(List<SelectedField> selectedFields) {
+                fragment.append("{");
+                if (!fieldNames(selectedFields).contains("__typename"))
+                    fragment.append("__typename ");
+                selectedFields.forEach(this::addField);
+                fragment.append("}");
+                return this;
+            }
+
+            private void addField(SelectedField selectedField) {
+                fragment.append(selectedField.getName());
+                addArguments(selectedField);
+                addSubFields(selectedField);
+                fragment.append(' ');
+            }
+
+            private void addSubFields(SelectedField selectedField) {
+                var subFields = selectedField.getSelectionSet().getImmediateFields();
+                if (!subFields.isEmpty())
+                    fragment.append(new Fragment().with(subFields));
+            }
+
+            private void addArguments(SelectedField selectedField) {
                 if (!selectedField.getArguments().isEmpty()) {
-                    body.append("(");
+                    fragment.append("(");
                     var fieldDefinition = selectedField.getFieldDefinitions().stream().filter(def -> def.getName().equals(selectedField.getName())).findFirst().orElseThrow();
                     for (var name : selectedField.getArguments().keySet()) {
                         var argument = fieldDefinition.getArgument(name);
                         // TODO the value can be from the variables or a literal
-                        addVariable(argument.toAppliedArgument(), selectedField.getArguments().get(name));
+                        add(argument.toAppliedArgument(), selectedField.getArguments().get(name));
                     }
-                    body.append(")");
+                    fragment.append(")");
                 }
-                var subFields = selectedField.getSelectionSet().getImmediateFields();
-                if (!subFields.isEmpty())
-                    new FragmentBuilder().with(subFields);
-                body.append(' ');
             }
 
-            private void addVariable(GraphQLAppliedDirectiveArgument argument, Object value) {
+            private void add(GraphQLAppliedDirectiveArgument argument, Object value) {
                 var name = argument.getName();
                 var variableType = ((GraphQLNamedType) argument.getType()).getName();
-                withVariable(name, variableType, value);
-                body.append(name).append(":$").append(name);
+                RequestBuilder.this.addVariable(name, variableType, value);
+                fragment.append(name).append(":$").append(name);
             }
         }
     }
