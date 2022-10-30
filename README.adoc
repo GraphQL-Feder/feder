@@ -7,8 +7,38 @@
 
 image::doc/feder.png[width=240]
 
-A lightweight https://www.apollographql.com/docs/federation/federation-spec[GraphQL Federation] server.
+A lightweight https://www.apollographql.com/docs/federation/federation-spec[GraphQL Federation] server written in Java.
 
-== Build
+== Give It A Try
 
-This project is a Quarkus/JakartaEE hybrid, i.e. the `pom.xml` builds a https://quarkus.io[Quarkus] application, while the `war-pom.xml` build a `war` that can be deployed to any https://jakarta.ee[JakartaEE] or https://microprofile.io[Microprofile] runtime.
+* Install JDK 17.
+* Download some https://jakarta.ee[JEE 10] container, here we use https://www.wildfly.org[WildFly 17] and unpack it somewhere; we call this `$WILDFLY_HOME`.
+* Run `mvn package -Pfat`.
+* Go to `demo/product` and run:
+** `$WILDFLY_HOME/bin/standalone.sh -Djboss.socket.binding.port-offset=2 --read-only-server-config=standalone.xml`
+** In a new console: `$WILDFLY_HOME/bin/jboss-cli.sh --connect --controller=localhost:9992 --command='deploy target/ROOT.war'`
+
+* Go to `demo/price` and run:
+** `$WILDFLY_HOME/bin/standalone.sh -Djboss.socket.binding.port-offset=3 --read-only-server-config=standalone.xml`
+** In a new console: `$WILDFLY_HOME/bin/jboss-cli.sh --connect --controller=localhost:9993 --command='deploy target/ROOT.war'`
+
+* Go to `core` and run:
+** `$WILDFLY_HOME/bin/standalone.sh --read-only-server-config=standalone.xml`
+** In a new console: `$WILDFLY_HOME/bin/jboss-cli.sh --connect --command='deploy target/ROOT.war'`
+
+* With the variables `{"id": "1","locale": "es-MX"}`, execute this query to `http://localhost:8080/graphql`:
+[source,graphql]
+----
+query product($id: String! $locale: String) {
+    product(id: $id) {
+        id
+        name
+        description
+        price {
+            tag(locale: $locale)
+        }
+    }
+}
+----
+
+Note that the `name` and `description` fields are from the `product` service, while the `price` is from the `price` service.

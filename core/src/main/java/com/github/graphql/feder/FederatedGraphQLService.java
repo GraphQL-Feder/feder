@@ -3,8 +3,6 @@ package com.github.graphql.feder;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLSchema;
-import jakarta.enterprise.context.Dependent;
-import jakarta.inject.Inject;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +16,7 @@ import static com.github.graphql.feder.JsonMapper.map;
  * Holds a {@link GraphQLSchema} and fetches data from the Federation <code>_entities</code> query.
  */
 @Slf4j
-@Dependent
-@RequiredArgsConstructor(onConstructor_ = {@Inject})
+@RequiredArgsConstructor
 class FederatedGraphQLService implements DataFetcher<Object> {
     private final String name; // TODO add a `@boundedContext` directive to all fields from this service
     @Getter private final GraphQLSchema schema;
