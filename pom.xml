@@ -24,7 +24,7 @@
         <quarkus.version>3.0.0.Alpha1</quarkus.version>
         <microprofile-graphql-api.version>2.0</microprofile-graphql-api.version>
         <smallrye-context-propagation.version>2.0.0</smallrye-context-propagation.version>
-        <smallrye-graphql.version>2.0.0.RC12</smallrye-graphql.version>
+        <smallrye-graphql.version>2.0.0.RC13</smallrye-graphql.version>
 
         <surefire.version>3.0.0-M7</surefire.version>
         <maven-war-plugin.version>3.3.2</maven-war-plugin.version>
