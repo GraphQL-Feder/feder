@@ -15,6 +15,7 @@ import java.io.StringReader;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Function;
 
 import static com.github.graphql.feder.GraphQLGatewayTest.RunMode.WITH_DIRECTIVES;
 import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
@@ -30,10 +31,10 @@ class GraphQLGatewayTest {
     GraphQLAPI products;
     @Service
     GraphQLAPI prices;
-    GraphQLGateway gateway;
 
-    @SuppressWarnings("unused")
-    enum RunMode {
+    GraphQLGateway gateway = new GraphQLGateway();
+
+    enum RunMode implements Function<String, String> {
         WITH_DIRECTIVES {
             @Override public String directive(String directive) {return directive;}
         },
@@ -41,13 +42,17 @@ class GraphQLGatewayTest {
             @Override public String directive(String directive) {return "";}
         };
 
+        @Override public String apply(String string) {
+            return string.replaceAll("«(.*)»", directive("$1"));
+        }
+
         public abstract String directive(String directive);
     }
 
     @Test
     void shouldGetSchema() {
         setupData(WITH_DIRECTIVES);
-        setupServices(products(), prices());
+        setupSchema(products(), prices());
 
         var schema = gateway.schema();
 
@@ -69,7 +74,7 @@ class GraphQLGatewayTest {
     @EnumSource
     void shouldGetProduct(RunMode runMode) {
         setupData(runMode);
-        setupServices(products(), prices());
+        setupSchema(products(), prices());
 
         var response = gateway.request("{product(id:\"1\"){id name}}", null);
 
@@ -81,7 +86,7 @@ class GraphQLGatewayTest {
     @EnumSource
     void shouldGetProductPrice(RunMode runMode) {
         setupData(runMode);
-        setupServices(prices(), products());
+        setupSchema(prices(), products());
 
         var response = gateway.request("{product(id:\"1\"){price{tag}}}", null);
 
@@ -95,7 +100,7 @@ class GraphQLGatewayTest {
     @EnumSource
     void shouldGetProductNameAndPrice(RunMode runMode) {
         setupData(runMode);
-        setupServices(products(), prices());
+        setupSchema(products(), prices());
 
         var response = gateway.request("{product(id:\"1\"){name price{tag}}}", null);
 
@@ -113,18 +118,19 @@ class GraphQLGatewayTest {
     }
 
     private void setupProducts(RunMode runMode) {
-        givenSchema(products,
-            "\"Something you can buy\"\n" +
-            "type Product " + runMode.directive("@key(fields: \"id\") ") + "{\n" +
-            "  id: ID\n" +
-            "  name: String\n" +
-            "  description: String\n" +
-            "}\n" +
-            "\n" +
-            "\"Query root\"\n" +
-            "type Query {\n" +
-            "  product(id: ID): Product\n" +
-            "}\n");
+        givenSchema(products, """
+            "Something you can buy"
+            type Product «@key(fields: "id")»{
+              id: ID
+              name: String
+              description: String
+            }
+                            
+            "Query root"
+            type Query {
+              product(id: ID): Product
+            }
+            """.transform(runMode));
         givenRepresentation(products, "Product{__typename id name }", """
             "__typename": "Product",
             "id": "1",
@@ -137,25 +143,34 @@ class GraphQLGatewayTest {
     }
 
     private void setupPrices(RunMode runMode) {
-        givenSchema(prices,
-            "type Product " + runMode.directive("@extends @key(fields: \"id\") ") + "{\n" +
-            "  id: ID" + runMode.directive(" @external") + "\n" +
-            "  \"The price in cent\"\n" +
-            "  price: Price\n" +
-            "}\n" +
-            "\n" +
-            "type Price {\n" +
-            "  currency: String\n" +
-            "  \"e.g. euros and cents. not all currency have exactly 2!\"\n" +
-            "  parts: [Int]\n" +
-            "  \"human readable representation of the price\"\n" +
-            "  tag(locale: String): String\n" +
-            "}\n" +
-            "\n" +
-            "\"Query root\"\n" +
-            "type Query {\n" +
-            "  product(id: ID): Product\n" +
-            "}\n");
+        givenSchema(prices, """
+            type Currency {
+              code: String
+              displayName(locale: String): String
+              fractionDigits: Int!
+              numericCode: String
+              symbol(locale: String): String
+            }
+            
+            type Product «@extends @key(fields: "id")»{
+              id: ID« @external»
+              "The price in cent"
+              price: Price
+            }
+            
+            type Price {
+              currency: Currency
+              "e.g. euros and cents. not all currency have exactly 2!"
+              parts: [Int]
+              "human readable representation of the price"
+              tag(locale: String): String
+            }
+            
+            "Query root"
+            type Query {
+              product(id: ID): Product
+            }
+            """.transform(runMode));
         givenRepresentation(prices, "Product{__typename price{__typename tag } }", """
             "__typename": "Product",
             "price": {"tag": "399.99 €"}
@@ -206,8 +221,7 @@ class GraphQLGatewayTest {
     }
 
 
-    private void setupServices(FederatedGraphQLService... services) {
-        this.gateway = new GraphQLGateway();
+    private void setupSchema(FederatedGraphQLService... services) {
         this.gateway.schema = new SchemaMerger(List.of(services)).merge();
     }
 

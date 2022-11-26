@@ -10,8 +10,16 @@ directive @specifiedBy(
     url: String!
   ) on SCALAR
 
+type Currency {
+  code: String
+  displayName(locale: String): String
+  fractionDigits: Int!
+  numericCode: String
+  symbol(locale: String): String
+}
+
 type Price {
-  currency: String
+  currency: Currency
   parts: [Int]
   tag(locale: String): String
 }
