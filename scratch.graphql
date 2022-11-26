@@ -13,7 +13,17 @@ query product($id:String!){
     }
 }
 
-query productAndPrice($id: String! $locale: String) {
+query review($id:String!){
+    product(id:$id) {
+        id
+        reviews {
+            user{slug}
+            text
+        }
+    }
+}
+
+query full($id: String! $locale: String) {
     product(id: $id) {
         __typename
         id
@@ -31,6 +41,10 @@ query productAndPrice($id: String! $locale: String) {
                 symbol(locale: "es-MX")
                 displayName(locale: "el-GR")
             }
+        }
+        reviews {
+            user{slug}
+            text
         }
     }
 }

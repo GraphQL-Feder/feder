@@ -16,5 +16,6 @@
     <modules>
         <module>price</module>
         <module>product</module>
+        <module>review</module>
     </modules>
 </project>
