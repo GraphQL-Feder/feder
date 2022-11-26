@@ -25,16 +25,13 @@ query review($id:String!){
 
 query full($id: String! $locale: String) {
     product(id: $id) {
-        __typename
         id
         name
         description
         price {
-            __typename
             tag(locale: $locale)
             parts
             currency {
-                __typename
                 code
                 numericCode
                 fractionDigits

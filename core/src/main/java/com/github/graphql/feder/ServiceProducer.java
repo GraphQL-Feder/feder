@@ -14,7 +14,7 @@ import static java.util.stream.Collectors.toList;
 @Dependent // TODO ApplicationScoped
 class ServiceProducer {
     @Inject
-    @ConfigProperty(name = "graphql.service")
+    @ConfigProperty(name = "graphql.federated.service")
     Map<String, URI> serviceUris;
 
     @Produces
