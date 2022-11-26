@@ -30,9 +30,19 @@ type Product {
   id: ID
   name: String
   price: Price
+  reviews: [Review]
 }
 
 "Query root"
 type Query {
   product(id: ID): Product
+}
+
+type Review {
+  text: String
+  user: User
+}
+
+type User {
+  slug: String
 }

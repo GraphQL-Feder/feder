@@ -4,6 +4,8 @@ import org.eclipse.microprofile.graphql.GraphQLApi;
 import org.eclipse.microprofile.graphql.NonNull;
 import org.eclipse.microprofile.graphql.Query;
 
+import static com.github.graphql.feder.demo.review.Stars.FIVE;
+
 @GraphQLApi
 public class Reviews {
     @Query
