@@ -36,7 +36,8 @@ class FederatedGraphQLService implements DataFetcher<Object> {
 
     @Override
     public Object get(DataFetchingEnvironment env) {
-        var entitiesRequest = new EntitiesRequest((GraphQLObjectType) env.getFieldType(), idFieldName, env.getArgument(idFieldName), env.getSelectionSet());
+        var typeName = ((GraphQLObjectType) env.getFieldType()).getName();
+        var entitiesRequest = new EntitiesRequest(schema, typeName, idFieldName, env.getArgument(idFieldName), env.getSelectionSet());
 
         if (entitiesRequest.getRequest() == null) {
             return new LinkedHashMap<>();

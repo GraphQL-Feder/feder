@@ -10,20 +10,18 @@ directive @specifiedBy(
     url: String!
   ) on SCALAR
 
+type Price {
+  currency: String
+  parts: [Int]
+  tag(locale: String): String
+}
+
 "Something you can buy"
 type Product {
   description: String
   id: ID
   name: String
   price: Price
-}
-
-type Price {
-    "e.g. euros and cents. not all currency have exactly 2!"
-    parts: [Int]
-    currency: String
-    "human readable representation of the price"
-    tag(locale: String): String
 }
 
 "Query root"

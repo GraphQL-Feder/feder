@@ -77,5 +77,11 @@
             <version>3.0.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.t1</groupId>
+            <artifactId>wunderbar.junit</artifactId>
+            <version>3.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

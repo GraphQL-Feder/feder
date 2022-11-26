@@ -6,6 +6,7 @@ import graphql.schema.GraphQLAppliedDirectiveArgument;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLNamedType;
 import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLSchema;
 import graphql.schema.SelectedField;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -29,7 +30,8 @@ class EntitiesRequest {
     @Getter private final GraphQLRequest request;
     private final List<SelectedField> selectedFields;
 
-    EntitiesRequest(GraphQLObjectType objectType, String idFieldName, String idValue, DataFetchingFieldSelectionSet selectionSet) {
+    EntitiesRequest(GraphQLSchema schema, String typeName, String idFieldName, String idValue, DataFetchingFieldSelectionSet selectionSet) {
+        var objectType = schema.getObjectType(typeName);
         var availableFields = availableFieldNames(objectType);
         this.selectedFields = selectedFields(availableFields, selectionSet);
         this.request = (selectedFields.isEmpty() || selectedOnly(idFieldName))

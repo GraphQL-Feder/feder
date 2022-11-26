@@ -1,17 +1,36 @@
-query price {
-    product(id:"1"){
-        id price
+query price($id:String!){
+    product(id:$id) {
+        id
+        price {tag currency{code} parts}
     }
 }
 
-query product {
-    product(id:"1"){
-        id name description
+query product($id:String!){
+    product(id:$id) {
+        id
+        name
+        description
     }
 }
 
-query productAndPrice {
-    product(id:"1"){
-        id name description price
+query productAndPrice($id: String! $locale: String) {
+    product(id: $id) {
+        __typename
+        id
+        name
+        description
+        price {
+            __typename
+            tag(locale: $locale)
+            parts
+            currency {
+                __typename
+                code
+                numericCode
+                fractionDigits
+                symbol(locale: "es-MX")
+                displayName(locale: "el-GR")
+            }
+        }
     }
 }

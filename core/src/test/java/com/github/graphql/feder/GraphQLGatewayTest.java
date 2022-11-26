@@ -1,13 +1,11 @@
 package com.github.graphql.feder;
 
-// import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
-// import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
-// import com.github.t1.wunderbar.junit.consumer.Service;
-// import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
-
+import com.github.graphql.feder.GraphQLAPI.GraphQLRequest;
+import com.github.graphql.feder.GraphQLAPI.GraphQLResponse;
+import com.github.t1.wunderbar.junit.consumer.Service;
+import com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -19,16 +17,18 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static com.github.graphql.feder.GraphQLGatewayTest.RunMode.WITH_DIRECTIVES;
+import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
+import static com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer.NONE;
+import static com.github.t1.wunderbar.junit.consumer.WunderbarExpectationBuilder.given;
 import static org.assertj.core.api.BDDAssertions.contentOf;
 import static org.assertj.core.api.BDDAssertions.then;
 
-@Disabled("wunderbar still depends on the JEE8 package names `javax`")
-    // @WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
+@WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
 class GraphQLGatewayTest {
 
-    // @Service
+    @Service
     GraphQLAPI products;
-    // @Service
+    @Service
     GraphQLAPI prices;
     GraphQLGateway gateway;
 
@@ -46,8 +46,8 @@ class GraphQLGatewayTest {
 
     @Test
     void shouldGetSchema() {
-        setup(WITH_DIRECTIVES);
-        setup(products(), prices());
+        setupData(WITH_DIRECTIVES);
+        setupServices(products(), prices());
 
         var schema = gateway.schema();
 
@@ -68,8 +68,8 @@ class GraphQLGatewayTest {
     @ParameterizedTest
     @EnumSource
     void shouldGetProduct(RunMode runMode) {
-        setup(runMode);
-        setup(products(), prices());
+        setupData(runMode);
+        setupServices(products(), prices());
 
         var response = gateway.request("{product(id:\"1\"){id name}}", null);
 
@@ -80,28 +80,34 @@ class GraphQLGatewayTest {
     @ParameterizedTest
     @EnumSource
     void shouldGetProductPrice(RunMode runMode) {
-        setup(runMode);
-        setup(prices(), products());
+        setupData(runMode);
+        setupServices(prices(), products());
 
-        var response = gateway.request("{product(id:\"1\"){price}}", null);
+        var response = gateway.request("{product(id:\"1\"){price{tag}}}", null);
 
         then(response.getErrors()).isNull();
-        then(response.getData("product", Product.class)).isEqualTo(Product.builder().price(399_99).build());
+        then(response.getData("product", Product.class)).isEqualTo(Product.builder()
+            .price(Price.builder().tag("399.99 €").build())
+            .build());
     }
 
     @ParameterizedTest
     @EnumSource
     void shouldGetProductNameAndPrice(RunMode runMode) {
-        setup(runMode);
-        setup(products(), prices());
+        setupData(runMode);
+        setupServices(products(), prices());
 
-        var response = gateway.request("{product(id:\"1\"){name price}}", null);
+        var response = gateway.request("{product(id:\"1\"){name price{tag}}}", null);
 
         then(response.getErrors()).isNull();
-        then(response.getData("product", Product.class)).isEqualTo(Product.builder().name("Table").price(399_99).build());
+        then(response.getData("product", Product.class)).isEqualTo(
+            Product.builder()
+                .name("Table")
+                .price(Price.builder().tag("399.99 €").build())
+                .build());
     }
 
-    void setup(RunMode runMode) {
+    void setupData(RunMode runMode) {
         setupProducts(runMode);
         setupPrices(runMode);
     }
@@ -119,12 +125,12 @@ class GraphQLGatewayTest {
             "type Query {\n" +
             "  product(id: ID): Product\n" +
             "}\n");
-        givenRepresentation(products, "Product{__typename name id}", """
+        givenRepresentation(products, "Product{__typename id name }", """
             "__typename": "Product",
             "id": "1",
             "name": "Table"
             """);
-        givenRepresentation(products, "Product{__typename name}", """
+        givenRepresentation(products, "Product{__typename name }", """
             "__typename": "Product",
             "name": "Table"
             """);
@@ -135,29 +141,37 @@ class GraphQLGatewayTest {
             "type Product " + runMode.directive("@extends @key(fields: \"id\") ") + "{\n" +
             "  id: ID" + runMode.directive(" @external") + "\n" +
             "  \"The price in cent\"\n" +
-            "  price: Int\n" +
+            "  price: Price\n" +
+            "}\n" +
+            "\n" +
+            "type Price {\n" +
+            "  currency: String\n" +
+            "  \"e.g. euros and cents. not all currency have exactly 2!\"\n" +
+            "  parts: [Int]\n" +
+            "  \"human readable representation of the price\"\n" +
+            "  tag(locale: String): String\n" +
             "}\n" +
             "\n" +
             "\"Query root\"\n" +
             "type Query {\n" +
             "  product(id: ID): Product\n" +
             "}\n");
-        givenRepresentation(prices, "Product{__typename price}", """
-                "__typename": "Product",
-                "price": 39999
-                """);
+        givenRepresentation(prices, "Product{__typename price{__typename tag } }", """
+            "__typename": "Product",
+            "price": {"tag": "399.99 €"}
+            """);
     }
 
     private static void givenSchema(GraphQLAPI service, String schema) {
-        // given(service.request(GraphQLRequest.builder()
-        //     .query("{_service{sdl}}")
-        //     .build())
-        // ).willReturn(GraphQLResponse.builder().data(parse(
-        //     "{\n" +
-        //     "    \"_service\": {\n" +
-        //     "        \"sdl\": \"" + escape(schema) + "\"\n" +
-        //     "    }\n" +
-        //     "}")).build());
+        given(service.request(GraphQLRequest.builder()
+            .query("{_service{sdl}}")
+            .build())
+        ).willReturn(GraphQLResponse.builder().data(parse(
+            "{\n" +
+            "    \"_service\": {\n" +
+            "        \"sdl\": \"" + escape(schema) + "\"\n" +
+            "    }\n" +
+            "}")).build());
     }
 
     private static String escape(String schema) {
@@ -167,24 +181,24 @@ class GraphQLGatewayTest {
     }
 
     private static void givenRepresentation(GraphQLAPI service, String fragment, String data) {
-        // given(service.request(GraphQLRequest.builder()
-        //     .query("query($representations:[_Any!]!){_entities(representations:$representations){...on " + fragment + "}}")
-        //     .variables(Json.createObjectBuilder()
-        //         .add("representations", Json.createObjectBuilder()
-        //             .add("__typename", "Product")
-        //             .add("id", "1")
-        //             .build())
-        //         .build())
-        //     .build())
-        // ).willReturn(GraphQLResponse.builder().data(parse(
-        //     "{\n" +
-        //     "    \"_entities\": [\n" +
-        //     "        {\n" +
-        //     data +
-        //     "        }\n" +
-        //     "    ]\n" +
-        //     "}"
-        // )).build());
+        given(service.request(GraphQLRequest.builder()
+            .query("query($representations:[_Any!]!) {_entities(representations:$representations){...on " + fragment + "}}")
+            .variables(Json.createObjectBuilder()
+                .add("representations", Json.createObjectBuilder()
+                    .add("__typename", "Product")
+                    .add("id", "1")
+                    .build())
+                .build())
+            .build())
+        ).willReturn(GraphQLResponse.builder().data(parse(
+            "{\n" +
+            "    \"_entities\": [\n" +
+            "        {\n" +
+            data +
+            "        }\n" +
+            "    ]\n" +
+            "}"
+        )).build());
     }
 
     private static JsonObject parse(String json) {
@@ -192,7 +206,7 @@ class GraphQLGatewayTest {
     }
 
 
-    private void setup(FederatedGraphQLService... services) {
+    private void setupServices(FederatedGraphQLService... services) {
         this.gateway = new GraphQLGateway();
         this.gateway.schema = new SchemaMerger(List.of(services)).merge();
     }
