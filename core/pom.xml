@@ -14,12 +14,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>jakarta.platform</groupId>
-            <artifactId>jakarta.jakartaee-api</artifactId>
-            <version>10.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.eclipse.microprofile</groupId>
             <artifactId>microprofile</artifactId>
             <version>5.0</version>
@@ -36,6 +30,7 @@
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
             <version>19.2</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -66,12 +61,6 @@
             <groupId>org.eclipse</groupId>
             <artifactId>yasson</artifactId>
             <version>3.0.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.t1</groupId>
-            <artifactId>wunderbar.junit</artifactId>
-            <version>3.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
