@@ -22,23 +22,10 @@ A lightweight https://www.apollographql.com/docs/federation/federation-spec[Grap
 ** `$WILDFLY_HOME/bin/standalone.sh -Djboss.socket.binding.port-offset=3 --read-only-server-config=standalone.xml`
 ** In a new console: `$WILDFLY_HOME/bin/jboss-cli.sh --connect --controller=localhost:9993 --command='deploy target/ROOT.war'`
 
-* Go to `core` and run:
+* Go to `war` and run:
 ** `$WILDFLY_HOME/bin/standalone.sh --read-only-server-config=standalone.xml`
-** In a new console: `$WILDFLY_HOME/bin/jboss-cli.sh --connect --command='deploy target/ROOT.war'`
+** In a new console: `$WILDFLY_HOME/bin/jboss-cli.sh --connect --commands='/system-property=graphql.federated.service.product:add(value=http://localhost:8082), /system-property=graphql.federated.service.price:add(value=http://localhost:8083), deploy target/ROOT.war'`
 
-* With the variables `{"id": "1","locale": "es-MX"}`, execute this query to `http://localhost:8080/graphql`:
-[source,graphql]
-----
-query product($id: String! $locale: String) {
-    product(id: $id) {
-        id
-        name
-        description
-        price {
-            tag(locale: $locale)
-        }
-    }
-}
-----
+* Execute a query, e.g. (with https://httpie.io/cli[httpie]): `http -v :8080/graphql query='{product(id: "1") {name description price{tag}}}'`
 
 Note that the `name` and `description` fields are from the `product` service, while the `price` is from the `price` service.

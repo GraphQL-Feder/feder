@@ -29,7 +29,7 @@ query full($id: String! $locale: String) {
         id
         name
         description
-    price {
+        price {
             tag(locale: $locale)
             parts
             currency {
