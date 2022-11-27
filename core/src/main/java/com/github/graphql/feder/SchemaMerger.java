@@ -5,6 +5,8 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLEnumValueDefinition;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLModifiedType;
@@ -21,11 +23,11 @@ import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.schema.SchemaTraverser;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
-import lombok.RequiredArgsConstructor;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import lombok.RequiredArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,6 +48,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     private final List<FederatedGraphQLService> services;
 
     private final Map<String, TypeBuilder> typeBuilders = new LinkedHashMap<>();
+    private final List<EnumBuilder> enumBuilders = new ArrayList<>();
     private final List<FieldBuilder> fieldBuilders = new ArrayList<>();
     private final GraphQLCodeRegistry.Builder codeRegistryBuilder = GraphQLCodeRegistry.newCodeRegistry();
     private final GraphQLSchema.Builder out = GraphQLSchema.newSchema()
@@ -55,6 +58,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
     private GraphQLSchema currentlyMergingSchema;
     private TypeBuilder currentTypeBuilder;
+    private EnumBuilder currentEnumBuilder;
     private FieldBuilder currentFieldBuilder;
 
     @Produces
@@ -85,17 +89,31 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     }
 
     @Override public TraversalControl visitGraphQLObjectType(GraphQLObjectType node, TraverserContext<GraphQLSchemaElement> context) {
-        currentTypeBuilder = null;
-        if (hasStandardNodeName(node))
-            this.currentTypeBuilder = typeBuilders.computeIfAbsent(node.getName(), name -> new TypeBuilder(node));
+        this.currentTypeBuilder = hasStandardNodeName(node)
+            ? typeBuilders.computeIfAbsent(node.getName(), name -> new TypeBuilder(node))
+            : null;
 
         return super.visitGraphQLObjectType(node, context);
     }
 
+    @Override public TraversalControl visitGraphQLEnumType(GraphQLEnumType node, TraverserContext<GraphQLSchemaElement> context) {
+        if (hasStandardNodeName(node))
+            enumBuilders.add(currentEnumBuilder = new EnumBuilder(node));
+        else currentEnumBuilder = null;
+
+        return super.visitGraphQLEnumType(node, context);
+    }
+
+    @Override public TraversalControl visitGraphQLEnumValueDefinition(GraphQLEnumValueDefinition node, TraverserContext<GraphQLSchemaElement> context) {
+        if (currentEnumBuilder != null)
+            currentEnumBuilder.add(node);
+        return super.visitGraphQLEnumValueDefinition(node, context);
+    }
+
     @Override public TraversalControl visitGraphQLFieldDefinition(GraphQLFieldDefinition node, TraverserContext<GraphQLSchemaElement> context) {
-        currentFieldBuilder = null;
         if (currentTypeBuilder != null && hasStandardNodeName(node))
             fieldBuilders.add(this.currentFieldBuilder = new FieldBuilder(node));
+        else currentFieldBuilder = null;
 
         return super.visitGraphQLFieldDefinition(node, context);
     }
@@ -113,6 +131,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
     private void closeBuilders() {
         fieldBuilders.forEach(FieldBuilder::build);
+        enumBuilders.forEach(EnumBuilder::build);
         typeBuilders.values().forEach(typeBuilder -> {
             var type = typeBuilder.build();
             if (type.getName().equals("Query"))
@@ -125,7 +144,7 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
     static class TypeBuilder {
         private final GraphQLObjectType.Builder type;
 
-        TypeBuilder(GraphQLObjectType node) {
+        TypeBuilder(GraphQLNamedSchemaElement node) {
             this.type = GraphQLObjectType.newObject()
                 .name(node.getName())
                 .description(node.getDescription());
@@ -141,6 +160,29 @@ class SchemaMerger extends GraphQLTypeVisitorStub {
 
         public GraphQLObjectType build() {
             return type.build();
+        }
+    }
+
+    class EnumBuilder {
+        private final GraphQLEnumType.Builder type;
+
+        EnumBuilder(GraphQLNamedSchemaElement node) {
+            this.type = GraphQLEnumType.newEnum()
+                .name(node.getName())
+                .description(node.getDescription());
+        }
+
+        @Override public String toString() {
+            return "EnumBuilder(" + type + ')';
+        }
+
+        public void add(GraphQLEnumValueDefinition value) {
+            type.value(value);
+        }
+
+        public void build() {
+            var type = this.type.build();
+            out.additionalType(type);
         }
     }
 

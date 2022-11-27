@@ -157,13 +157,13 @@ class GraphQLGatewayTest {
               numericCode: String
               symbol(locale: String): String
             }
-                        
+            
             type Product «@extends @key(fields: "id")»{
               id: ID« @external»
               "The price in cent"
               price: Price
             }
-                        
+            
             type Price {
               currency: Currency
               "e.g. euros and cents. not all currency have exactly 2!"
@@ -171,7 +171,7 @@ class GraphQLGatewayTest {
               "human readable representation of the price"
               tag(locale: String): String
             }
-                        
+            
             "Query root"
             type Query {
               product(id: ID): Product
@@ -192,7 +192,7 @@ class GraphQLGatewayTest {
               name: String
               description: String
             }
-                            
+            
             "Query root"
             type Query {
               product(id: ID): Product
@@ -216,19 +216,34 @@ class GraphQLGatewayTest {
               id: ID« @external»
               reviews: [Review]
             }
-                        
-            type Review {
-              text: String
-              user: User
-            }
-                        
-            type User {
-              slug: String
-            }
-                        
+            
             "Query root"
             type Query {
               product(id: ID): Product
+            }
+            
+            type Review {
+              text: String
+              stars: Stars
+              user: User
+            }
+            
+            type User {
+              slug: String
+            }
+            
+            "Five-star rating"
+            enum Stars {
+              "the minimum, totally bad"
+              ONE
+              "just mediocre"
+              TWO
+              "really okay"
+              THREE
+              "good, but some minor flaws"
+              FOUR
+              "the maximum, awesome"
+              FIVE
             }
             """.transform(runMode));
         givenRepresentation(reviews, "Product{__typename id reviews{__typename text } }", """

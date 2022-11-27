@@ -14,6 +14,7 @@ public class Reviews {
             .id(id)
             .review(Review.builder()
                 .user(User.builder().slug("t1").build())
+                .stars(FIVE)
                 .text("The best four-legged table I've ever seen")
                 .build())
             .build();

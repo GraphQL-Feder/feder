@@ -39,10 +39,25 @@ type Query {
 }
 
 type Review {
+  stars: Stars
   text: String
   user: User
 }
 
 type User {
   slug: String
+}
+
+"Five-star rating"
+enum Stars {
+  "the maximum, awesome"
+  FIVE
+  "good, but some minor flaws"
+  FOUR
+  "the minimum, totally bad"
+  ONE
+  "really okay"
+  THREE
+  "just mediocre"
+  TWO
 }
