@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.io.Closeable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,7 @@ import java.util.Optional;
  * Generic JAX-RS API to execute arbitrary GraphQL requests.
  */
 @Path("/graphql")
-public interface GraphQLAPI {
+public interface GraphQLAPI extends Closeable {
     Jsonb JSONB = JsonbBuilder.create();
     String APPLICATION_GRAPHQL_JSON_TYPE = "application/graphql+json;charset=utf-8";
 
@@ -43,6 +44,9 @@ public interface GraphQLAPI {
     @Produces("text/plain;charset=utf-8")
     String schema();
 
+    /* Implement Closeable and a default implementation, so MP REST Client will close the actual client class */
+    default void close() {}
+
     @Data @SuperBuilder @NoArgsConstructor
     class GraphQLRequest {
         String query;
@@ -50,6 +54,7 @@ public interface GraphQLAPI {
         String operationName;
 
         public Optional<JsonObject> variables() {return Optional.ofNullable(variables);}
+
         public Optional<String> operationName() {return Optional.ofNullable(operationName);}
     }
 
