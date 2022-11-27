@@ -24,7 +24,7 @@ import static org.assertj.core.api.BDDAssertions.then;
 class FederatedGraphQLServiceTest {
     @Test
     void shouldBuildNoQueryWhenNoFieldsMatch() throws Exception {
-        var client = new GraphQLAPI() {
+        try (var client = new GraphQLAPI() {
             @Override public GraphQLResponse request(GraphQLRequest request) {
                 then(request.query).isEqualTo(
                     "query($representations:[_Any!]! $locale:String) {_entities(representations:$representations)" +
@@ -54,33 +54,34 @@ class FederatedGraphQLServiceTest {
             @Override public String schema() {
                 return null;
             }
-        };
-        var sdl = Files.readString(Path.of("target/test-classes/expected-schema.graphql"));
-        var graphQLSchema = SchemaGenerator.createdMockedSchema(sdl);
-        var graphQL = givenGraphQL(sdl, builder -> builder.dataFetcher(
-            "product", new FederatedGraphQLService(
-                "product-service", graphQLSchema, URI.create("urn:dummy"), client, "id")));
+        }) {
+            var sdl = Files.readString(Path.of("target/test-classes/expected-schema.graphql"));
+            var graphQLSchema = SchemaGenerator.createdMockedSchema(sdl);
+            var graphQL = givenGraphQL(sdl, builder -> builder.dataFetcher(
+                "product", new FederatedGraphQLService(
+                    "product-service", graphQLSchema, URI.create("urn:dummy"), client, "id")));
 
-        var result = graphQL.execute(newExecutionInput()
-            .query("""
-                query product($id: ID) {
-                  product(id:$id) {
-                    id name description price {
-                      tag(locale: "es-MX")
+            var result = graphQL.execute(newExecutionInput()
+                .query("""
+                    query product($id: ID) {
+                      product(id:$id) {
+                        id name description price {
+                          tag(locale: "es-MX")
+                        }
+                      }
                     }
-                  }
-                }
-                """)
-            .variables(Map.of("id", "1"))
-            .build());
+                    """)
+                .variables(Map.of("id", "1"))
+                .build());
 
-        then(result.getErrors()).isEmpty();
-        then(result.<Map<?, ?>>getData()).isEqualTo(
-            Map.of("product", Map.of(
-                "id", "1",
-                "name", "Table",
-                "description", "A nice table with four legs",
-                "price", Map.of("tag", "12.34EUR"))));
+            then(result.getErrors()).isEmpty();
+            then(result.<Map<?, ?>>getData()).isEqualTo(
+                Map.of("product", Map.of(
+                    "id", "1",
+                    "name", "Table",
+                    "description", "A nice table with four legs",
+                    "price", Map.of("tag", "12.34EUR"))));
+        }
     }
 
     @Test
