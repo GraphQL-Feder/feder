@@ -27,7 +27,7 @@
         <smallrye-context-propagation.version>2.1.2</smallrye-context-propagation.version>
         <smallrye-graphql.version>2.9.1</smallrye-graphql.version>
 
-        <surefire.version>3.3.1</surefire.version>
+        <surefire.version>3.4.0</surefire.version>
     </properties>
 
     <dependencies>
