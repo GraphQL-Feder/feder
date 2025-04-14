@@ -24,7 +24,7 @@
 
         <quarkus.version>3.0.0.Alpha1</quarkus.version>
         <microprofile-graphql-api.version>2.0</microprofile-graphql-api.version>
-        <smallrye-context-propagation.version>2.2.0</smallrye-context-propagation.version>
+        <smallrye-context-propagation.version>2.2.1</smallrye-context-propagation.version>
         <smallrye-graphql.version>2.12.2</smallrye-graphql.version>
 
         <surefire.version>3.5.3</surefire.version>
