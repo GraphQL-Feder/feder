@@ -70,7 +70,7 @@
         <dependency>
             <groupId>com.github.t1</groupId>
             <artifactId>wunderbar.junit</artifactId>
-            <version>3.4</version>
+            <version>3.5</version>
             <scope>test</scope>
         </dependency>
         <dependency>
