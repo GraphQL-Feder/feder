@@ -17,12 +17,11 @@ import java.util.List;
 import java.util.function.Function;
 
 import static com.github.t1.wunderbar.junit.consumer.Level.INTEGRATION;
-import static com.github.t1.wunderbar.junit.consumer.WunderBarApiConsumer.NONE;
 import static com.github.t1.wunderbar.junit.consumer.WunderbarExpectationBuilder.given;
 import static org.assertj.core.api.BDDAssertions.contentOf;
 import static org.assertj.core.api.BDDAssertions.then;
 
-@WunderBarApiConsumer(level = INTEGRATION, fileName = NONE)
+@WunderBarApiConsumer(level = INTEGRATION, output = {})
 class GraphQLGatewayTest {
 
     // TODO schema with non-null arguments

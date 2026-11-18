@@ -23,6 +23,7 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static graphql.Scalars.GraphQLInt;
@@ -61,7 +62,8 @@ class FederatedSchemaBuilder {
         runtimeWiring.scalar(GraphQLInt.transform(builder -> builder.name("BigInteger")));
 
         @SuppressWarnings("unchecked")
-        var queries = (List<FieldDefinition>) typeDefinitionRegistry.getType("Query").orElseThrow().getChildren();
+        var queries = (List<FieldDefinition>) Optional.ofNullable(typeDefinitionRegistry.getTypeOrNull("Query"))
+            .orElseThrow().getChildren();
         queries.forEach(query ->
             runtimeWiring.type("Query", wire -> wire.dataFetcher(query.getName(), representationFetcher))
         );
@@ -110,7 +112,7 @@ class FederatedSchemaBuilder {
     private boolean hasIdField(TypeDefinition<?> typeDefinition) {
         return typeDefinition.getChildren().stream()
             .flatMap(this::typeNameFields)
-            .anyMatch(type -> type.getName().equals("ID"));
+            .anyMatch(type -> "ID".equals(type.getName()));
     }
 
     private Stream<TypeName> typeNameFields(Node<?> typeNode) {
@@ -134,24 +136,24 @@ class FederatedSchemaBuilder {
     private static final String FEDERATION_SCHEMA = """
         scalar _Any
         scalar _FieldSet
-
+        
         type _Service {
           sdl: String
         }
-
+        
         extend type Query {
           _entities(representations: [_Any!]!): [_Entity]!
           _service: _Service!
         }
-
+        
         directive @external on FIELD_DEFINITION
         directive @requires(fields: _FieldSet!) on FIELD_DEFINITION
         directive @provides(fields: _FieldSet!) on FIELD_DEFINITION
         directive @key(fields: _FieldSet!) repeatable on OBJECT | INTERFACE
-
+        
         # this is an optional directive discussed below
         directive @extends on OBJECT | INTERFACE
-
+        
         """;
 
     private class SchemaFetchingException extends FederationException {

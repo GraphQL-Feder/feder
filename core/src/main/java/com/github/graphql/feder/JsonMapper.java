@@ -47,16 +47,19 @@ class JsonMapper {
         if (value == null) return JsonValue.NULL;
         if (value == TRUE) return JsonValue.TRUE;
         if (value == FALSE) return JsonValue.FALSE;
-        if (value instanceof String s) return Json.createValue(s);
-        if (value instanceof Integer i) return Json.createValue(i);
-        if (value instanceof Long l) return Json.createValue(l);
-        if (value instanceof Double d) return Json.createValue(d);
-        if (value instanceof BigInteger i) return Json.createValue(i);
-        if (value instanceof BigDecimal d) return Json.createValue(d);
-        if (value instanceof Collection<?> c) return toJson(c);
-        if (value instanceof Map<?, ?> m) //noinspection unchecked
-            return toJson((Map<String, Object>) m);
-        throw new IllegalArgumentException("can't map to json");
+        return switch (value) {
+            case String s -> Json.createValue(s);
+            case Integer i -> Json.createValue(i);
+            case Long l -> Json.createValue(l);
+            case Double d -> Json.createValue(d);
+            case BigInteger i -> Json.createValue(i);
+            case BigDecimal d -> Json.createValue(d);
+            case Collection<?> c -> toJson(c);
+            case Map<?, ?> m ->
+                //noinspection unchecked
+                toJson((Map<String, Object>) m);
+            default -> throw new IllegalArgumentException("can't map to json");
+        };
     }
 
     public static JsonObject toJson(Map<String, Object> m) {

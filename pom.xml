@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>utf-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>utf-8</project.reporting.outputEncoding>
 
-        <quarkus.version>3.40.1.1</quarkus.version>
+        <quarkus.version>3.40.1.2</quarkus.version>
         <microprofile-graphql-api.version>2.0</microprofile-graphql-api.version>
         <smallrye-context-propagation.version>2.4.0</smallrye-context-propagation.version>
         <smallrye-graphql.version>2.18.6</smallrye-graphql.version>
