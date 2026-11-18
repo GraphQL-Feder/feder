@@ -11,8 +11,8 @@ A lightweight https://www.apollographql.com/docs/federation/federation-spec[Grap
 
 == Give It A Try
 
-* Install JDK 17.
-* Download some https://jakarta.ee[JEE 10] container, here we use https://www.wildfly.org[WildFly 17] and unpack it somewhere; we call this `$WILDFLY_HOME`.
+* Install JDK 21.
+* Download some https://jakarta.ee[JEE 10] container, here we use https://www.wildfly.org[WildFly] and unpack it somewhere; we call this `$WILDFLY_HOME`.
 * Run `mvn package -Pfat`.
 * Go to `demo/product` and run:
 ** `$WILDFLY_HOME/bin/standalone.sh -Djboss.socket.binding.port-offset=2 --read-only-server-config=standalone.xml`
